@@ -10,11 +10,8 @@ load_features() {
         esac
     done < "$1"
 }
-write_features() {
-    printf 'hey=%s\n' "$hey"
-}
 save_features() {
-    write_features > "$1.tmp" && chmod 0600 "$1.tmp" && mv -f "$1.tmp" "$1"
+    printf 'hey=%s\n' "$hey" > "$1.tmp" && chmod 0600 "$1.tmp" && mv -f "$1.tmp" "$1"
 }
 
 # Called before mounts, or on the new module directory during installation.

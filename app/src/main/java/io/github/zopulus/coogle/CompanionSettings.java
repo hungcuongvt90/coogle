@@ -26,9 +26,10 @@ final class CompanionSettings {
         boolean previousReady = settings.getBoolean("companion_ready", false);
         try {
             String state = support.set(enabled);
-            if (enabled && !installed(state)) throw new IOException("请先安装并启用新版附属模块。");
-            if (enabled != previous || installed(state) != settings.getBoolean("companion_ready", false))
-                commit(settings.edit().putBoolean(FeaturePolicy.HEY_GOOGLE, enabled).putBoolean("companion_ready", installed(state)));
+            boolean ready = installed(state);
+            if (enabled && !ready) throw new IOException("请先安装并启用新版附属模块。");
+            if (enabled != previous || ready != settings.getBoolean("companion_ready", false))
+                commit(settings.edit().putBoolean(FeaturePolicy.HEY_GOOGLE, enabled).putBoolean("companion_ready", ready));
             return state;
         } catch (Exception failure) {
             try {
