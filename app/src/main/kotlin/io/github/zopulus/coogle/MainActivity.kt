@@ -24,7 +24,10 @@ import java.io.IOException
 import java.util.concurrent.Executors
 
 class MainActivity : ComponentActivity() {
-    private val worker = Executors.newSingleThreadExecutor()
+    companion object {
+        // Preserve request order when an Activity is destroyed/recreated with work pending.
+        private val worker = Executors.newSingleThreadExecutor()
+    }
     private val savingKeys = mutableSetOf<String>()
     private var preferences: SharedPreferences? = null
     private var companionCheckedThisResume = false
@@ -53,7 +56,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         SettingsConnection.detach(this)
-        worker.shutdown()
         super.onDestroy()
     }
 
@@ -79,66 +81,54 @@ class MainActivity : ComponentActivity() {
         else saveSetting(key, enabled)
     }
 
-    private fun saveSetting(key: String, enabled: Boolean, companionInstalled: Boolean? = null) {
+    private fun saveSetting(key: String, enabled: Boolean) {
         val settings = preferences ?: return
         if (!savingKeys.add(key)) return
         worker.execute {
             var supportState: CompanionState? = null
             val result = runCatching {
-                val previous = settings.getBoolean(key, FeaturePolicy.defaultValue(key))
                 if (key == FeaturePolicy.HEY_GOOGLE) {
-                    supportState = CompanionState.valueOf(CompanionInstaller.setHeyGoogle(enabled))
-                    if (enabled && !supportState.installed)
-                        throw IOException("请先安装并启用新版附属模块。")
-                }
-                val editor = settings.edit().putBoolean(key, enabled)
-                companionInstalled?.let { editor.putBoolean("companion_ready", it) }
-                try {
-                    if (!editor.commit()) throw IOException("配置未保存，请检查 LSPosed 连接。")
-                } catch (failure: Exception) {
-                    if (key == FeaturePolicy.HEY_GOOGLE) runCatching { CompanionInstaller.setHeyGoogle(previous) }
-                        .exceptionOrNull()?.let(failure::addSuppressed)
-                    throw failure
+                    supportState = CompanionState.valueOf(CompanionSettings.INSTANCE.save(settings, enabled))
+                } else if (!settings.edit().putBoolean(key, enabled).commit()) {
+                    throw IOException("配置未保存，请检查 LSPosed 连接。")
                 }
             }
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread
                 savingKeys.remove(key)
                 result.onSuccess {
-                    state = state.copy(features = state.features + (key to enabled),
-                        companion = supportState ?: state.companion)
+                    syncPreferences()
+                    state = state.copy(companion = supportState ?: state.companion)
                 }.onFailure { error(it.message ?: "配置保存失败") }
             }
         }
     }
 
     private fun checkCompanion(enableAfterCheck: Boolean) {
+        val settings = preferences ?: return
         if (state.busy) return
         val lastCheck = companionCheckedAt
         if (!enableAfterCheck && (companionCheckedThisResume ||
             (lastCheck != null && SystemClock.elapsedRealtime() - lastCheck < 30_000L))) return
         companionCheckedThisResume = true
         state = state.copy(busy = true, companion = CompanionState.CHECKING)
-        val requestedHey = state.features[FeaturePolicy.HEY_GOOGLE] == true
         worker.execute {
             val result = runCatching {
-                CompanionState.valueOf(if (enableAfterCheck) CompanionInstaller.check()
-                    else CompanionInstaller.syncHeyGoogle(requestedHey))
+                CompanionState.valueOf(if (enableAfterCheck) CompanionSettings.INSTANCE.check()
+                    else CompanionSettings.INSTANCE.sync(settings))
             }
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread
                 state = state.copy(busy = false)
                 result.onSuccess { installed ->
+                    syncPreferences()
                     companionCheckedAt = SystemClock.elapsedRealtime()
                     state = state.copy(companion = installed)
                     if (enableAfterCheck) when (installed) {
-                        CompanionState.READY, CompanionState.PENDING -> saveSetting(FeaturePolicy.HEY_GOOGLE, true, true)
+                        CompanionState.READY, CompanionState.PENDING -> saveSetting(FeaturePolicy.HEY_GOOGLE, true)
                         CompanionState.DISABLED -> showDialog(DialogKind.DISABLED)
                         else -> showDialog(DialogKind.INSTALL)
                     }
-                    else if (installed in setOf(CompanionState.MISSING, CompanionState.DISABLED) &&
-                        state.features[FeaturePolicy.HEY_GOOGLE] == true)
-                        saveSetting(FeaturePolicy.HEY_GOOGLE, false, false)
                 }.onFailure {
                     companionCheckedAt = null
                     state = state.copy(companion = CompanionState.UNKNOWN)
@@ -154,17 +144,7 @@ class MainActivity : ComponentActivity() {
         state = state.copy(busy = true, companion = CompanionState.INSTALLING, dialog = DialogKind.NONE)
         worker.execute {
             val result = runCatching {
-                val previous = settings.getBoolean(FeaturePolicy.HEY_GOOGLE, FeaturePolicy.defaultValue(FeaturePolicy.HEY_GOOGLE))
-                CompanionInstaller.install(this)
-                try {
-                    val installed = CompanionState.valueOf(CompanionInstaller.setHeyGoogle(true))
-                    if (!installed.installed) throw IOException("附属模块未就绪，请检查 KernelSU 模块状态。")
-                    if (!settings.edit().putBoolean("companion_ready", true).putBoolean(FeaturePolicy.HEY_GOOGLE, true).commit())
-                        throw IOException("附属模块已安装，但配置保存失败，请重新开启 Hey Google。")
-                } catch (failure: Exception) {
-                    runCatching { CompanionInstaller.setHeyGoogle(previous) }.exceptionOrNull()?.let(failure::addSuppressed)
-                    throw failure
-                }
+                CompanionSettings.INSTANCE.install(this, settings)
             }
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread

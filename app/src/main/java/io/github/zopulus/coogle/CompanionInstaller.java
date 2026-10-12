@@ -35,7 +35,7 @@ public final class CompanionInstaller {
         return "d="+DIR+"; pending=0; if [ -f /data/adb/modules_update/coogle_companion/module.prop ]; then "
                 + "d=/data/adb/modules_update/coogle_companion; pending=1; fi; "
                 + "if [ ! -f \"$d/module.prop\" ]; then echo MISSING; "
-                + "elif [ -f \"$d/disable\" ] || [ -f \"$d/remove\" ] || [ -f \"$d/component-error\" ]; then echo DISABLED; "
+                + "elif [ -f \"$d/disable\" ] || [ -f \"$d/remove\" ] || [ -f \"$d/component-error\" ] || [ -f \"$d/skip_mount\" ]; then echo DISABLED; "
                 + "elif ! grep -q '^controlVersion=1$' \"$d/module.prop\" || [ ! -f \"$d/features.sh\" ]; then echo UPDATE_REQUIRED; "
                 + "elif [ \"$pending\" = 1 ] || [ ! -f \"$d/applied-features.conf\" ] || "
                 + "! cmp -s \"$d/features.conf\" \"$d/applied-features.conf\"; then echo PENDING; else echo READY; fi";

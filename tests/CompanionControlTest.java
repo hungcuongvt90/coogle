@@ -45,6 +45,14 @@ public final class CompanionControlTest {
             check(Files.readString(active.resolve("features.conf")).equals("hey=1\n")
                     && Files.readString(pending.resolve("features.conf")).equals("hey=1\n"),
                     "Automatic sync did not mirror both installed directories");
+            for (String marker : new String[]{"skip_mount", "component-error", "remove"}) {
+                Files.createFile(pending.resolve(marker));
+                check(runCommand(CompanionInstaller.syncCommand(false), active, pending).equals("DISABLED"),
+                        "Unavailable mounts accepted: " + marker);
+                check(Files.readString(pending.resolve("features.conf")).equals("hey=1\n"),
+                        "Automatic sync modified unavailable mounts");
+                Files.delete(pending.resolve(marker));
+            }
             System.out.println("PASS: Hey Google mirror, staged updates, reboot requirement and legacy detection");
         } finally {
             try (var files = Files.walk(root)) {

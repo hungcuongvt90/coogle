@@ -2,14 +2,14 @@ package io.github.zopulus.coogle.ui
 
 import io.github.zopulus.coogle.FeaturePolicy
 
-enum class CompanionState(val summary: String, val installed: Boolean = false) {
+enum class CompanionState(val summary: String) {
     UNKNOWN("附属模块：开启时自动检测"),
     CHECKING("附属模块：正在检测安装状态…"),
     MISSING("附属模块：未安装"),
     DISABLED("附属模块：已禁用"),
     UPDATE_REQUIRED("附属模块：需要更新"),
-    READY("附属模块：已安装并启用", true),
-    PENDING("附属模块：已安装，待重启完成挂载", true),
+    READY("附属模块：已安装并启用"),
+    PENDING("附属模块：已安装，待重启完成挂载"),
     INSTALLING("附属模块：正在安装…")
 }
 
