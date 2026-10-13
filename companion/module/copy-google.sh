@@ -16,14 +16,5 @@ while IFS= read -r line; do
 done <<EOF
 $apks
 EOF
-# NoMount registers .replace as a directory whiteout before the file rules,
-# and its driver then rejects every rule below that directory: the module
-# would vanish from /system/priv-app entirely. Keep merge semantics while the
-# NoMount driver is active; other mount backends keep replace-directory
-# behavior via the .replace marker.
-nomount_nm=/data/adb/modules/nomount/bin/nm
-if [ -x "$nomount_nm" ] && "$nomount_nm" version >/dev/null 2>&1; then
-    rm -f "$APP_DIR/.replace" || abort "Cannot disable replace marker for NoMount"
-else
-    : > "$APP_DIR/.replace" || abort "Cannot enable replace marker"
-fi
+. "$MODPATH/mount-google.sh"
+prepare_google_mount "$MODPATH" || abort "Cannot prepare Google mount mode"

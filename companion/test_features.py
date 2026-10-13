@@ -85,6 +85,7 @@ class FeaturesTest(unittest.TestCase):
             work = Path(directory)
             (work/'features.sh').write_bytes((ROOT/'module/features.sh').read_bytes().replace(b'\r\n', b'\n'))
             native = (ROOT/'module/native-translate.sh').read_text(encoding='utf-8').replace('/system/bin/idmap2', 'idmap2')
+            (work/'mount-google.sh').write_bytes((ROOT/'module/mount-google.sh').read_bytes().replace(b'\r\n',b'\n'))
             (work/'native-translate.sh').write_bytes(native.encode())
             script = (ROOT/'module/post-fs-data.sh').read_text(encoding='utf-8').replace('MODDIR=${0%/*}', f'MODDIR="{unix(work)}"')
             script = 'idmap2() { [ "$1" != lookup ] || echo \'value="com.google.android.googlequicksearchbox\'; };\n'+script

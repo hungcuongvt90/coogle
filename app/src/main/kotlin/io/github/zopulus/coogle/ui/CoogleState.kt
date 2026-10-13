@@ -3,7 +3,7 @@ package io.github.zopulus.coogle.ui
 import io.github.zopulus.coogle.FeaturePolicy
 
 enum class CompanionState(val summary: String) {
-    UNKNOWN("附属模块：开启时自动检测"),
+    UNKNOWN("附属模块：点击管理可检测安装状态"),
     CHECKING("附属模块：正在检测安装状态…"),
     MISSING("附属模块：未安装"),
     DISABLED("附属模块：已禁用"),
@@ -18,6 +18,7 @@ enum class DialogKind { NONE, STATUS, INSTALL, DISABLED, INSTALLED, HIDE_ICON, E
 data class CoogleState(
     val connected: Boolean = false,
     val features: Map<String, Boolean> = featureKeys.associateWith(FeaturePolicy::defaultValue),
+    val enableHeyOnInstall: Boolean = false,
     val busy: Boolean = false,
     val assistant: String = "当前数字助理：读取中…",
     val companion: CompanionState = CompanionState.UNKNOWN,

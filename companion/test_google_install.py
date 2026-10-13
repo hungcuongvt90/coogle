@@ -25,6 +25,7 @@ class GoogleInstallTest(unittest.TestCase):
                 files = payload()
                 if 'copy-google.sh' in files:
                     (work/'copy-google.sh').write_bytes(files['copy-google.sh'])
+                    (work/'mount-google.sh').write_bytes(files['mount-google.sh'])
                 # Execute the generated installation path, ending before Android-specific setup.
                 script = files['customize.sh'].decode().split('set_perm_recursive "$MODPATH/system"')[0]
                 if mode == 'empty':

@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
             CoogleTheme {
                 CoogleScreen(state, ::changeSetting, ::openAssistant, ::changeIconVisibility,
                     { showDialog(DialogKind.STATUS) }, ::openRepository,
-                    ::confirmDialog, ::dismissDialog)
+                    ::confirmDialog, ::dismissDialog, { checkCompanion(false, true) })
             }
         }
         SettingsConnection.connect(this)
@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         companionCheckedThisResume = false
         state = state.copy(assistant = AssistantSelection.summary(this), iconHidden = iconHidden())
-        if (preferences != null && state.features[FeaturePolicy.HEY_GOOGLE] == true) checkCompanion(false)
+        refreshKnownCompanion()
     }
 
     override fun onDestroy() {
@@ -63,8 +63,8 @@ class MainActivity : ComponentActivity() {
         if (isDestroyed) return
         preferences = runCatching { service?.getRemotePreferences(FeatureConfig.GROUP) }.getOrNull()
         syncPreferences()
-        if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
-            state.features[FeaturePolicy.HEY_GOOGLE] == true) checkCompanion(false)
+        if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+            refreshKnownCompanion()
     }
 
     private fun syncPreferences() {
@@ -73,6 +73,11 @@ class MainActivity : ComponentActivity() {
                 .getOrNull() ?: FeaturePolicy.defaultValue(key)
         }
         state = state.copy(connected = preferences != null, features = values)
+    }
+
+    private fun refreshKnownCompanion() {
+        val settings = preferences ?: return
+        if (runCatching { CompanionSettings.shouldCheck(settings) }.getOrDefault(false)) checkCompanion(false)
     }
 
     private fun changeSetting(key: String, enabled: Boolean) {
@@ -104,11 +109,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun checkCompanion(enableAfterCheck: Boolean) {
+    private fun checkCompanion(enableAfterCheck: Boolean, explicit: Boolean = false) {
         val settings = preferences ?: return
         if (state.busy) return
         val lastCheck = companionCheckedAt
-        if (!enableAfterCheck && (companionCheckedThisResume ||
+        if (!enableAfterCheck && !explicit && (companionCheckedThisResume ||
             (lastCheck != null && SystemClock.elapsedRealtime() - lastCheck < 30_000L))) return
         companionCheckedThisResume = true
         state = state.copy(busy = true, companion = CompanionState.CHECKING)
@@ -127,24 +132,27 @@ class MainActivity : ComponentActivity() {
                     if (enableAfterCheck) when (installed) {
                         CompanionState.READY, CompanionState.PENDING -> saveSetting(FeaturePolicy.HEY_GOOGLE, true)
                         CompanionState.DISABLED -> showDialog(DialogKind.DISABLED)
-                        else -> showDialog(DialogKind.INSTALL)
+                        else -> showInstallDialog(enableAfterCheck)
                     }
+                    else if (installed == CompanionState.UPDATE_REQUIRED || (explicit && installed == CompanionState.MISSING))
+                        showInstallDialog(false)
+                    else if (explicit && installed == CompanionState.DISABLED) showDialog(DialogKind.DISABLED)
                 }.onFailure {
                     companionCheckedAt = null
                     state = state.copy(companion = CompanionState.UNKNOWN)
-                    if (enableAfterCheck) error("无法检查安装状态。请在 KernelSU 中为 Coogle 授予 Root 权限，然后重新开启 Hey Google。")
+                    if (enableAfterCheck || explicit) error("无法检查附属模块。请在 KernelSU 中为 Coogle 授予 Root 权限后重试。")
                 }
             }
         }
     }
 
-    private fun installCompanion() {
+    private fun installCompanion(enableHey: Boolean) {
         val settings = preferences ?: return
         companionCheckedAt = null
         state = state.copy(busy = true, companion = CompanionState.INSTALLING, dialog = DialogKind.NONE)
         worker.execute {
             val result = runCatching {
-                CompanionSettings.INSTANCE.install(this, settings)
+                CompanionSettings.INSTANCE.install(this, settings, enableHey)
             }
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread
@@ -183,15 +191,17 @@ class MainActivity : ComponentActivity() {
 
     private fun confirmDialog() {
         val dialog = state.dialog
+        val enableHey = state.enableHeyOnInstall
         dismissDialog()
         when (dialog) {
-            DialogKind.INSTALL -> installCompanion()
+            DialogKind.INSTALL -> installCompanion(enableHey)
             DialogKind.HIDE_ICON -> setIconHidden(true)
             else -> Unit
         }
     }
 
     private fun showDialog(kind: DialogKind) { state = state.copy(dialog = kind) }
+    private fun showInstallDialog(enableHey: Boolean) { state = state.copy(dialog = DialogKind.INSTALL, enableHeyOnInstall = enableHey) }
     private fun dismissDialog() { state = state.copy(dialog = DialogKind.NONE) }
     private fun error(message: String) { state = state.copy(dialog = DialogKind.ERROR, dialogText = message) }
     private fun openRepository() {

@@ -12,8 +12,14 @@ public final class CompanionSettingsTest {
     public static void main(String[] args) throws Exception {
         concurrentSaveAndResume();
         Prefs prefs = new Prefs(); Support support = new Support();
+        check(!CompanionSettings.shouldCheck(prefs.api),"First open requested unsolicited root checks");
+        prefs.values.put("companion_ready",true);
+        check(CompanionSettings.shouldCheck(prefs.api),"Existing installed companion lost automatic checks");
+        prefs.values.clear(); prefs.values.put("companion_known",true);
+        check(CompanionSettings.shouldCheck(prefs.api),"Known update lost retry detection");
+        prefs.values.clear();
         CompanionSettings control = new CompanionSettings(support);
-        for (String state : new String[]{"MISSING", "DISABLED", "UPDATE_REQUIRED"}) {
+        for (String state : new String[]{"MISSING", "DISABLED"}) {
             prefs.values.put(FeaturePolicy.HEY_GOOGLE, true); prefs.values.put("companion_ready", true);
             support.state = state; support.enabled = true;
             control.sync(prefs.api);
@@ -25,6 +31,21 @@ public final class CompanionSettingsTest {
             check(!prefs.value(FeaturePolicy.HEY_GOOGLE), "Failed enable changed preferences");
             control.save(prefs.api, false);
         }
+        for (boolean enabled : new boolean[]{false,true}) {
+            prefs.values.put(FeaturePolicy.HEY_GOOGLE,enabled); prefs.values.put("companion_ready",true);
+            support.state="UPDATE_REQUIRED"; support.enabled=enabled;
+            control.sync(prefs.api);
+            check(prefs.value(FeaturePolicy.HEY_GOOGLE)==enabled && support.enabled==enabled,
+                    "Pending payload update discarded the user's Hey Google choice");
+            check(!prefs.value("companion_ready") && prefs.value("companion_known"),"Old payload was not remembered as needing an update");
+            control.install(null,prefs.api,false);
+            check(prefs.value(FeaturePolicy.HEY_GOOGLE)==enabled && support.enabled==enabled,
+                    "Companion update changed the saved Hey Google choice");
+            check(prefs.value("companion_ready"),"Updated staged payload not marked usable");
+        }
+        prefs.values.put(FeaturePolicy.HEY_GOOGLE,false);
+        control.install(null,prefs.api,true);
+        check(prefs.value(FeaturePolicy.HEY_GOOGLE) && support.enabled,"Explicit Hey Google installation did not enable it");
         support.state = "PENDING"; control.save(prefs.api, true);
         check(prefs.value(FeaturePolicy.HEY_GOOGLE) && prefs.value("companion_ready"), "Staged install rejected");
         prefs.commitSucceeds = false;
@@ -38,7 +59,7 @@ public final class CompanionSettingsTest {
         prefs.commitSucceeds = true;
         int commits = prefs.commits; control.sync(prefs.api);
         check(prefs.commits == commits, "Matching automatic sync rewrote preferences");
-        System.out.println("PASS: concurrent save/resume, staged readiness, unavailable support and commit rollback");
+        System.out.println("PASS: serialized settings, update choice preservation, install intent, known-state detection and rollback");
     }
     private static void concurrentSaveAndResume() throws Exception {
         Prefs prefs = new Prefs(); prefs.values.put(FeaturePolicy.HEY_GOOGLE, true);
@@ -69,6 +90,7 @@ public final class CompanionSettingsTest {
             if (state.equals("READY") || state.equals("PENDING")) this.enabled = enabled;
             synced.countDown(); return state;
         }
+        public void install(android.content.Context context) { state="PENDING"; }
     }
     private static final class Prefs {
         final Map<String, Boolean> values = new HashMap<>();

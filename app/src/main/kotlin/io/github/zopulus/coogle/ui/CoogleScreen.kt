@@ -77,7 +77,8 @@ fun CoogleScreen(
     onStatus: () -> Unit,
     onAbout: () -> Unit,
     onDialogConfirm: () -> Unit,
-    onDialogDismiss: () -> Unit
+    onDialogDismiss: () -> Unit,
+    onCompanion: () -> Unit
 ) {
     val bar = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     Scaffold(
@@ -144,6 +145,10 @@ fun CoogleScreen(
                     state.features[FeaturePolicy.LENS] == true, available, { onSetting(FeaturePolicy.LENS, it) })
                 ToggleRow(3, 4, Icons.Rounded.CenterFocusStrong, "相机智能镜头", "在后置拍照菜单中显示 Google 智能镜头，需勾选相机作用域并重启相机与 Google",
                     state.features[FeaturePolicy.CAMERA_LENS] == true, available, { onSetting(FeaturePolicy.CAMERA_LENS, it) })
+            }
+            Group("附属模块") {
+                SettingRow(0, 1, Icons.Rounded.Extension, "附属模块管理", state.companion.summary,
+                    onClick = { if (available && !state.busy) onCompanion() })
             }
             Group("系统设置") {
                 ToggleRow(0, 6, Icons.Rounded.TouchApp, "系统导航方式", "补全设置中的导航方式。圈定即搜实时翻译功能需安装附属模块",
@@ -225,7 +230,7 @@ private fun CoogleDialog(state: CoogleState, onConfirm: () -> Unit, onDismiss: (
     if (state.dialog == DialogKind.NONE) return
     val title = when (state.dialog) {
         DialogKind.STATUS -> "模块状态"
-        DialogKind.INSTALL -> "安装附属模块"
+        DialogKind.INSTALL -> if (state.companion == CompanionState.UPDATE_REQUIRED) "更新附属模块" else "安装附属模块"
         DialogKind.DISABLED -> "附属模块已禁用"
         DialogKind.INSTALLED -> "安装完成"
         DialogKind.HIDE_ICON -> "隐藏桌面图标？"
@@ -233,14 +238,16 @@ private fun CoogleDialog(state: CoogleState, onConfirm: () -> Unit, onDismiss: (
     }
     val message = when (state.dialog) {
         DialogKind.STATUS -> "在 LSPosed 中启用 Coogle 并勾选推荐作用域。更改设置后，重启对应作用域生效。\n\n系统兼容性仅检查 ColorOS 17。"
-        DialogKind.INSTALL -> "Hey Google 需要安装或更新新版附属模块。安装会请求 Root 授权。\n\n请设置 Hey Google 后重启，实时翻译会在附属配置生效后自动启用。"
-        DialogKind.DISABLED -> "请在 KernelSU 中启用 Coogle 附属模块，然后重新开启 Hey Google。"
-        DialogKind.INSTALLED -> "Coogle 附属模块已安装，Hey Google 开关已开启。\n\n请重启手机完成附属模块挂载，再在 Google 设置中完成 Voice Match。"
+        DialogKind.INSTALL -> "附属模块提供 Google 系统化与圈定即搜实时翻译支持，安装或更新需要 Root 授权。\n\n" +
+            if (state.enableHeyOnInstall) "安装后将开启 Hey Google，请重启手机完成挂载。" else "安装或更新会保留当前 Hey Google 选择，请重启手机完成挂载。"
+        DialogKind.DISABLED -> "请在 KernelSU 中启用 Coogle 附属模块，然后返回附属模块管理重新检测。"
+        DialogKind.INSTALLED -> "Coogle 附属模块已安装，请重启手机完成挂载。" +
+            if (state.features[FeaturePolicy.HEY_GOOGLE] == true) "\n\nHey Google 已开启，可在 Google 设置中完成 Voice Match。" else "\n\nHey Google 保持关闭。"
         DialogKind.HIDE_ICON -> "隐藏后，仍可从 LSPosed 的 Coogle 模块设置入口打开应用。"
         else -> state.dialogText
     }
     val confirm = when (state.dialog) {
-        DialogKind.INSTALL -> "安装"
+        DialogKind.INSTALL -> if (state.companion == CompanionState.UPDATE_REQUIRED) "更新" else "安装"
         DialogKind.HIDE_ICON -> "隐藏"
         else -> "知道了"
     }

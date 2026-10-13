@@ -7,3 +7,5 @@ APK：JDK 17，Android SDK Platform 37.0 / Build Tools 36.0.0。配置 JAVA_HOME
 APK 当前使用本机 Android debug keystore 签名，不同计算机的默认签名不相同。
 
 Lens 原生定位回归测试：先完成普通构建，在已连接的 arm64 Android 设备上运行 `python tests/run_lens_dex_test.py --adb <adb路径> --serial <设备序列号> --verify-regression`。使用 JAVA_HOME、ANDROID_HOME 和 GRADLE_USER_HOME（默认 ~/.gradle）中的已缓存依赖；覆盖旧/新事件编号、锚点歧义、错误控制器结构和缺失目标，并确认旧数字限制会使新版样例失败。只在设备临时目录运行合成 DEX，结束后清理，不安装应用或修改模块。
+
+附属模块回归：生成 ZIP 后运行 `python -m unittest discover -s companion -p 'test_*.py'`。APK 的 `:app:testHookLifecycle` 包含旧 1.3.2 升级、payload 修订号、开关同步和更新选择保留测试；NoMount 模式切换、驱动未加载、标记失败和 Google SYSTEM 状态测试在附属套件中运行，不需要 Root 或修改实机模块。

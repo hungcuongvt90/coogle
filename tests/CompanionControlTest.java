@@ -15,8 +15,9 @@ public final class CompanionControlTest {
             Files.writeString(active.resolve("module.prop"), "id=coogle_companion\n");
             check(run(true, active, pending).equals("UPDATE_REQUIRED"), "Old module accepted as controllable");
             check(!Files.exists(active.resolve("features.conf")), "Old module was modified");
-            Files.writeString(active.resolve("module.prop"), "id=coogle_companion\ncontrolVersion=1\n");
+            Files.writeString(active.resolve("module.prop"), "id=coogle_companion\ncontrolVersion=1\npayloadRevision=2\n");
             Files.writeString(active.resolve("features.sh"), "fixture\n");
+            Files.writeString(active.resolve("mount-google.sh"), "fixture\n");
             Files.writeString(active.resolve("applied-features.conf"), "hey=0\n");
             check(run(false, active, pending).equals("READY"), "Matching state not ready");
             var timestamp = java.nio.file.attribute.FileTime.fromMillis(1_000_000);
@@ -30,6 +31,7 @@ public final class CompanionControlTest {
             Files.createDirectories(pending);
             Files.copy(active.resolve("module.prop"), pending.resolve("module.prop"));
             Files.copy(active.resolve("features.sh"), pending.resolve("features.sh"));
+            Files.copy(active.resolve("mount-google.sh"), pending.resolve("mount-google.sh"));
             check(run(false, active, pending).equals("PENDING"), "Staged module not reported");
             check(Files.readString(active.resolve("features.conf")).equals("hey=0\n")
                     && Files.readString(pending.resolve("features.conf")).equals("hey=0\n"), "Staged update lost switch state");

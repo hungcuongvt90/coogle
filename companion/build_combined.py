@@ -5,6 +5,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT.parent / 'build/Coogle-Companion-1.3.2.zip'
+PAYLOAD_REVISION = 2
 
 def payload():
     files = {}
@@ -23,12 +24,12 @@ def payload():
     for name in ('patch-audio.awk', 'prepare-audio.sh', 'status.sh', 'hotword-status.awk'):
         path = ROOT/'integration'/name
         files[name] = path.read_bytes().replace(b'\r\n', b'\n')
-    for name in ('boot-completed.sh', 'setup.sh', 'uninstall.sh', 'features.sh', 'post-fs-data.sh', 'native-translate.sh', 'copy-google.sh'):
+    for name in ('boot-completed.sh', 'setup.sh', 'uninstall.sh', 'features.sh', 'post-fs-data.sh', 'native-translate.sh', 'copy-google.sh', 'mount-google.sh'):
         files[name] = (ROOT/'module'/name).read_bytes().replace(b'\r\n', b'\n')
     installer = '''#!/system/bin/sh
 . "$MODPATH/copy-google.sh"
 set_perm_recursive "$MODPATH/system" 0 0 0755 0644
-for script in boot-completed.sh setup.sh uninstall.sh prepare-audio.sh status.sh features.sh post-fs-data.sh native-translate.sh copy-google.sh; do
+for script in boot-completed.sh setup.sh uninstall.sh prepare-audio.sh status.sh features.sh post-fs-data.sh native-translate.sh copy-google.sh mount-google.sh; do
     set_perm "$MODPATH/$script" 0 0 0755
 done
 /system/bin/sh "$MODPATH/prepare-audio.sh"
@@ -46,7 +47,8 @@ ui_print "Google system app, enrollment and DSP support combined. Reboot require
 ui_print "Hey Google follows the Coogle switch; live translation enables automatically after reboot."
 '''
     files['customize.sh'] = installer.replace('\r\n', '\n').encode()
-    files['module.prop'] = 'id=coogle_companion\nname=Coogle 附属模块\nversion=1.3.2\nversionCode=132\ncontrolVersion=1\nauthor=zopulus\ndescription=[⏳待重启检测]\n'.encode()
+    files['module.prop'] = ('id=coogle_companion\nname=Coogle 附属模块\nversion=1.3.2\nversionCode=132\ncontrolVersion=1\n'
+                            f'payloadRevision={PAYLOAD_REVISION}\nauthor=zopulus\ndescription=[⏳待重启检测]\n').encode()
     return files
 
 def build():

@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 /** Root is used only after the user asks to check/install the companion. */
 public final class CompanionInstaller {
     private static final String DIR="/data/adb/modules/coogle_companion";
+    static final int REQUIRED_PAYLOAD_REVISION = 2;
     public static String check() throws Exception {
         return state(run(statusCommand(),20));
     }
@@ -34,9 +35,12 @@ public final class CompanionInstaller {
     private static String statusCommand() {
         return "d="+DIR+"; pending=0; if [ -f /data/adb/modules_update/coogle_companion/module.prop ]; then "
                 + "d=/data/adb/modules_update/coogle_companion; pending=1; fi; "
+                + "r=$(sed -n 's/^payloadRevision=//p' \"$d/module.prop\" 2>/dev/null); "
+                + "case \"$r\" in ''|*[!0-9]*) r=0;; esac; "
                 + "if [ ! -f \"$d/module.prop\" ]; then echo MISSING; "
                 + "elif [ -f \"$d/disable\" ] || [ -f \"$d/remove\" ] || [ -f \"$d/component-error\" ] || [ -f \"$d/skip_mount\" ]; then echo DISABLED; "
-                + "elif ! grep -q '^controlVersion=1$' \"$d/module.prop\" || [ ! -f \"$d/features.sh\" ]; then echo UPDATE_REQUIRED; "
+                + "elif ! grep -q '^controlVersion=1$' \"$d/module.prop\" || [ ! -f \"$d/features.sh\" ] "
+                + "|| [ ! -f \"$d/mount-google.sh\" ] || ! [ \"$r\" -ge " + REQUIRED_PAYLOAD_REVISION + " ] 2>/dev/null; then echo UPDATE_REQUIRED; "
                 + "elif [ \"$pending\" = 1 ] || [ ! -f \"$d/applied-features.conf\" ] || "
                 + "! cmp -s \"$d/features.conf\" \"$d/applied-features.conf\"; then echo PENDING; else echo READY; fi";
     }

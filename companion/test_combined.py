@@ -58,6 +58,11 @@ class CombinedTest(unittest.TestCase):
             self.assertIn(b'am compat reset',z.read('uninstall.sh'))
             self.assertNotIn(b'getevent', installer)
             self.assertIn(b'controlVersion=1', z.read('module.prop'))
+            from build_combined import PAYLOAD_REVISION
+            self.assertIn(f'payloadRevision={PAYLOAD_REVISION}\n'.encode(),z.read('module.prop'))
+            source=(ROOT.parent/'app/src/main/java/io/github/zopulus/coogle/CompanionInstaller.java').read_text(encoding='utf-8')
+            self.assertIn(f'REQUIRED_PAYLOAD_REVISION = {PAYLOAD_REVISION};',source)
+            self.assertIn('mount-google.sh',z.namelist())
             self.assertIn(b'apply_features', z.read('post-fs-data.sh'))
             self.assertIn(b'[ "$hey" = 1 ] || exit 0', z.read('setup.sh'))
 
