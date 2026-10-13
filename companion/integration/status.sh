@@ -8,8 +8,8 @@ else
     google_status='⚠️Google未固化'
     enrollment='⚠️注册组件未就绪'
     dsp='⚠️DSP未运行'
-    package=$(dumpsys -t 10 package com.google.android.googlequicksearchbox 2>/dev/null | grep -m 1 'flags=\[.*SYSTEM')
-    if [ -n "$package" ]; then
+    flags=$(dumpsys -t 10 package com.google.android.googlequicksearchbox 2>/dev/null | grep -m 1 '^    flags=\[')
+    if printf '%s\n' "$flags" | grep -q '[[:space:]]SYSTEM[[:space:]]'; then
         google_status='✅Google系统应用'
     fi
     if [ "$hey" = 0 ]; then
