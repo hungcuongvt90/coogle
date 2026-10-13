@@ -74,7 +74,7 @@ def hotwordTestClasses = layout.buildDirectory.dir('hotword-tests')
 
 def lifecycleTestClasses = layout.buildDirectory.dir('hook-lifecycle-tests')
 tasks.register('compileHookLifecycleTests', JavaCompile) {
-    source files('../tests/CompanionControlTest.java', '../tests/CompanionUpgradeRegressionTest.java', '../tests/CameraLensPolicyTest.java', '../tests/CameraLensEligibilityTest.java')
+    source files('../tests/CompanionControlTest.java', '../tests/CompanionUpgradeRegressionTest.java', '../tests/CameraLensEligibilityTest.java', '../tests/CameraNativeLensTest.java')
     source files('../tests/CompanionSettingsTest.java')
     source files('../tests/GmsFeatureQueryTest.java')
     dependsOn 'compileReleaseJavaWithJavac'
@@ -94,7 +94,7 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
     targetCompatibility = '17'
     options.encoding = 'UTF-8'
 }
-['CompanionUpgradeRegressionTest', 'CameraLensEligibilityTest', 'CameraLensPolicyTest', 'GmsFeatureQueryTest', 'CompanionControlTest', 'CompanionSettingsTest', 'DexTargetCacheTest', 'WalletPreviewBindingTest', 'LensHookLifecycleTest', 'SignalModelHookLifecycleTest', 'RoleReconciliationTest', 'HookInstallRollbackTest', 'HiddenCircleNoAssistantTest', 'FeatureQueryTest', 'ContextBindingCacheTest'].each { testName ->
+['CompanionUpgradeRegressionTest', 'CameraNativeLensTest', 'CameraLensEligibilityTest', 'GmsFeatureQueryTest', 'CompanionControlTest', 'CompanionSettingsTest', 'DexTargetCacheTest', 'WalletPreviewBindingTest', 'LensHookLifecycleTest', 'SignalModelHookLifecycleTest', 'RoleReconciliationTest', 'HookInstallRollbackTest', 'HiddenCircleNoAssistantTest', 'FeatureQueryTest', 'ContextBindingCacheTest'].each { testName ->
     tasks.register("test${testName}", JavaExec) {
         dependsOn 'compileHookLifecycleTests'
         classpath = files(lifecycleTestClasses) + tasks.named('compileHookLifecycleTests').get().classpath
@@ -102,7 +102,8 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
     }
 }
 tasks.register('testHookLifecycle') {
-    dependsOn 'testCompanionUpgradeRegressionTest', 'testCameraLensPolicyTest', 'testCameraLensEligibilityTest'
+    dependsOn 'testCompanionUpgradeRegressionTest', 'testCameraLensEligibilityTest'
+    dependsOn 'testCameraNativeLensTest'
     dependsOn 'testGmsFeatureQueryTest'
     dependsOn 'testCompanionControlTest'
     dependsOn 'testCompanionSettingsTest'

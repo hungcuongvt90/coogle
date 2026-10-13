@@ -28,11 +28,14 @@ public final class DexTargetCacheTest {
             stored.setProperty("apk", "2:" + apk + ":" + apk.toFile().lastModified() + ":" + apk.toFile().length());
             stored.setProperty(FeaturePolicy.LENS, new DexMethod(create).serialize() + "\n" + new DexMethod(talk).serialize());
             stored.setProperty(FeaturePolicy.WALLET, "");
+            stored.setProperty(FeaturePolicy.CAMERA_LENS, "");
             try (var output = Files.newOutputStream(cache)) { stored.store(output, "fixture"); }
             try (var targets = new AppDexTargets(DexTargetCacheTest.class.getClassLoader(), apk.toString(), dir.toString())) {
                 var methods = targets.resolve(FeaturePolicy.LENS);
                 if (!methods.equals(java.util.List.of(create, talk))) throw new AssertionError("Cached methods changed");
                 if (!targets.resolve(FeaturePolicy.WALLET).isEmpty()) throw new AssertionError("Negative cache ignored");
+                try { targets.resolve(FeaturePolicy.CAMERA_LENS); throw new AssertionError("Former camera miss suppressed native lookup"); }
+                catch (UnsatisfiedLinkError expected) { /* A new native binding requires its own cache key. */ }
             }
             Files.write(apk, new byte[]{1,2});
             try (var targets = new AppDexTargets(DexTargetCacheTest.class.getClassLoader(), apk.toString(), dir.toString())) {

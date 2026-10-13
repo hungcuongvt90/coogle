@@ -49,7 +49,10 @@ final class AppDexTargets implements AutoCloseable {
     }
 
     List<Method> resolve(String feature) throws ReflectiveOperationException {
-        String saved = stored.getProperty(feature);
+        // Native presenter descriptors must not reuse the former forced-menu cache.
+        String cacheKey = FeaturePolicy.CAMERA_LENS.equals(feature) ? feature + ".native-v1" : feature;
+        if (!cacheKey.equals(feature) && stored.remove(feature) != null) dirty = true;
+        String saved = stored.getProperty(cacheKey);
         if (saved != null) {
             if (saved.isEmpty()) return List.of();
             try {
@@ -60,7 +63,7 @@ final class AppDexTargets implements AutoCloseable {
             } catch (ReflectiveOperationException | RuntimeException | LinkageError invalid) {
                 // Stale or incompatible cached targets require a fresh scan.
             }
-            stored.remove(feature);
+            stored.remove(cacheKey);
             dirty = true;
         }
         if (bridge == null) {
@@ -75,23 +78,21 @@ final class AppDexTargets implements AutoCloseable {
         };
         if (methods.isEmpty()) {
             // Only deterministic misses are cached; thrown scan/binding errors are retried.
-            stored.setProperty(feature, "");
+            stored.setProperty(cacheKey, "");
             dirty = true;
             return methods;
         }
         if (!valid(feature, methods)) return List.of();
         List<String> descriptors = new ArrayList<>();
         for (Method method : methods) descriptors.add(new DexMethod(method).serialize());
-        stored.setProperty(feature, String.join("\n", descriptors));
+        stored.setProperty(cacheKey, String.join("\n", descriptors));
         dirty = true;
         return methods;
     }
 
     private static boolean valid(String feature, List<Method> methods) {
         if (FeaturePolicy.CAMERA_LENS.equals(feature))
-            return !methods.isEmpty() && methods.size() <= 65 && methods.get(0).getReturnType() == boolean.class
-                    && List.of(methods.get(0).getParameterTypes()).equals(List.of(String.class))
-                    && !Modifier.isStatic(methods.get(0).getModifiers());
+            return CameraLensBinding.valid(methods);
         if (methods.size() < 2 || methods.size() > 514) return false;
         if (FeaturePolicy.LENS.equals(feature)) {
             return LensBinding.isPair(methods.get(0), methods.get(1));
@@ -108,13 +109,70 @@ final class AppDexTargets implements AutoCloseable {
                 .returnType("boolean").paramTypes("java.lang.String")
                 .usingStrings(List.of("key_show_googlelens_icon", "com.oplus.camera.feature.google_lens"))));
         if (found.size() != 1) return List.of();
-        List<Method> result = new ArrayList<>(List.of(found.get(0).getMethodInstance(loader)));
-        for (MethodData caller : found.get(0).getCallers()) {
-            if (!caller.isMethod() || Modifier.isAbstract(caller.getModifiers()) || Modifier.isNative(caller.getModifiers())) continue;
-            if (result.size() >= 65) return List.of();
-            Method method = caller.getMethodInstance(loader);
-            if (!result.contains(method)) result.add(method);
+        var clicks = bridge.findMethod(FindMethod.create().matcher(MethodMatcher.create()
+                .returnType("void").paramTypes("java.lang.String", "java.lang.String", "boolean")
+                .usingStrings(List.of("googleapp://lens", "com.google.android.googlequicksearchbox"))));
+        if (clicks.size() != 1) return List.of();
+        MethodData eligibility = null;
+        for (MethodData method : clicks.get(0).getDeclaredClass().getMethods()) {
+            if (!method.getReturnTypeName().equals("boolean") || method.getParamCount() != 0
+                    || !method.getUsingStrings().containsAll(List.of("groupshot", "night", "microscope"))) continue;
+            if (eligibility != null) return List.of();
+            eligibility = method;
         }
+        if (eligibility == null) return List.of();
+        MethodData entry = null;
+        for (MethodData method : bridge.findMethod(FindMethod.create().matcher(MethodMatcher.create()
+                .declaredClass("com.oplus.camera.module.BaseMode").returnType("boolean").paramCount(0)))) {
+            if (method.getOpCodes().size() != 6 || method.getInvokes().size() != 2) continue;
+            for (MethodData invoked : method.getInvokes()) {
+                // CameraEntry's inspected normal-entry predicate: one integer == 1.
+                // A changed/ambiguous instruction shape retains the original camera.
+                if (!invoked.getClassName().startsWith("com.oplus.camera.entry.")
+                        || !invoked.getReturnTypeName().equals("boolean") || invoked.getParamCount() != 0
+                        || !invoked.getOpNames().equals(List.of("iget", "const/4", "if-ne", "goto", "const/4", "return"))) continue;
+                if (entry != null) return List.of();
+                entry = method;
+            }
+        }
+        if (entry == null) return List.of();
+        MethodData supported = null, children = null, refresh = null;
+        for (MethodData method : eligibility.getInvokes()) {
+            if (!Modifier.isAbstract(method.getModifiers())) continue;
+            if (method.getReturnTypeName().equals("boolean") && method.getParamTypeNames().equals(List.of("android.app.Activity"))) {
+                if (children != null) return List.of(); children = method;
+            } else if (method.getParamCount() == 0 && method.getReturnTypeName().equals("boolean")
+                    && !method.getName().equals(entry.getName())) {
+                if (supported != null) return List.of(); supported = method;
+            } else if (method.getParamCount() == 0 && method.getReturnTypeName().equals("void")) {
+                if (refresh != null) return List.of(); refresh = method;
+            }
+        }
+        var locked = bridge.findMethod(FindMethod.create().matcher(MethodMatcher.create()
+                .declaredClass("com.oplus.camera.util.Util").returnType("boolean").paramCount(0)
+                .invokeMethods(MethodsMatcher.create().add(MethodMatcher.create()
+                        .declaredClass("android.app.KeyguardManager").name("isDeviceLocked").paramCount(0)))));
+        if (supported == null || children == null || refresh == null || locked.size() != 1) return List.of();
+        Class<?> ui = eligibility.getClassInstance(loader).getMethod("getMainUIContainer").getReturnType();
+        Method uiState = null;
+        for (Method method : ui.getMethods()) {
+            if (method.getParameterCount() != 0 || !method.getReturnType().getName().equals(CameraLensBinding.UI_STATE)) continue;
+            if (uiState != null && !uiState.equals(method)) return List.of(); uiState = method;
+        }
+        if (uiState == null) return List.of();
+        List<Method> result = new ArrayList<>(List.of(found.get(0).getMethodInstance(loader), eligibility.getMethodInstance(loader),
+                supported.getMethodInstance(loader), children.getMethodInstance(loader), entry.getMethodInstance(loader),
+                locked.get(0).getMethodInstance(loader), uiState, refresh.getMethodInstance(loader)));
+        Set<Method> callers = new LinkedHashSet<>();
+        callers.add(result.get(0));
+        List<MethodData> nativeCallers = new ArrayList<>(found.get(0).getCallers());
+        nativeCallers.addAll(eligibility.getCallers());
+        for (MethodData caller : nativeCallers) {
+            if (!caller.isMethod() || Modifier.isAbstract(caller.getModifiers()) || Modifier.isNative(caller.getModifiers())) continue;
+            callers.add(caller.getMethodInstance(loader));
+            if (callers.size() > 64) return List.of();
+        }
+        result.addAll(callers);
         return result;
     }
 
