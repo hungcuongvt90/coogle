@@ -9,7 +9,7 @@ enum class CompanionState(val summary: String) {
     DISABLED("附属模块：已禁用"),
     UPDATE_REQUIRED("附属模块：需要更新"),
     READY("附属模块：已安装并启用"),
-    PENDING("附属模块：已安装，待重启完成挂载"),
+    PENDING("附属模块：已安装请重启设备"),
     INSTALLING("附属模块：正在安装…")
 }
 
