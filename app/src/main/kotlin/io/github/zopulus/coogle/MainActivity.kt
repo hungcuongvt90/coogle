@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
             CoogleTheme {
                 CoogleScreen(state, ::changeSetting, ::openAssistant, ::changeIconVisibility,
                     { showDialog(DialogKind.STATUS) }, ::openRepository,
-                    ::confirmDialog, ::dismissDialog, { checkCompanion(false, true) })
+                    ::confirmDialog, ::dismissDialog)
             }
         }
         SettingsConnection.connect(this)
@@ -109,11 +109,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun checkCompanion(enableAfterCheck: Boolean, explicit: Boolean = false) {
+    private fun checkCompanion(enableAfterCheck: Boolean) {
         val settings = preferences ?: return
         if (state.busy) return
         val lastCheck = companionCheckedAt
-        if (!enableAfterCheck && !explicit && (companionCheckedThisResume ||
+        if (!enableAfterCheck && (companionCheckedThisResume ||
             (lastCheck != null && SystemClock.elapsedRealtime() - lastCheck < 30_000L))) return
         companionCheckedThisResume = true
         state = state.copy(busy = true, companion = CompanionState.CHECKING)
@@ -134,13 +134,12 @@ class MainActivity : ComponentActivity() {
                         CompanionState.DISABLED -> showDialog(DialogKind.DISABLED)
                         else -> showInstallDialog(enableAfterCheck)
                     }
-                    else if (installed == CompanionState.UPDATE_REQUIRED || (explicit && installed == CompanionState.MISSING))
+                    else if (installed == CompanionState.UPDATE_REQUIRED)
                         showInstallDialog(false)
-                    else if (explicit && installed == CompanionState.DISABLED) showDialog(DialogKind.DISABLED)
                 }.onFailure {
                     companionCheckedAt = null
                     state = state.copy(companion = CompanionState.UNKNOWN)
-                    if (enableAfterCheck || explicit) error("无法检查附属模块。请在 KernelSU 中为 Coogle 授予 Root 权限后重试。")
+                    if (enableAfterCheck) error("无法检查附属模块。请在 KernelSU 中为 Coogle 授予 Root 权限后重试。")
                 }
             }
         }

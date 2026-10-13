@@ -56,9 +56,9 @@ public final class CameraNativeLensTest {
     }
     private static final Object ORIGINAL = new Object();
     public static void main(String[] args) throws Throwable {
-        boolean[] enabled = {true};
+        int[] reads = {0};
         FeatureConfig.attach((SharedPreferences) Proxy.newProxyInstance(SharedPreferences.class.getClassLoader(),
-                new Class<?>[]{SharedPreferences.class}, (p,m,a) -> enabled[0]));
+                new Class<?>[]{SharedPreferences.class}, (p,m,a) -> { reads[0]++; return false; }));
         List<Method> targets = targets();
         HookInstaller hooks = install(targets);
         check(hooks.installed == 1 && hooks.callbacks.containsKey(Presenter.class.getMethod("eligibility")),
@@ -89,23 +89,18 @@ public final class CameraNativeLensTest {
             presenter.mode = mode;
             check(invoke(hooks, presenter) == ORIGINAL, "Other native mode branch replaced: " + mode);
         }
-        presenter.mode = "common"; enabled[0] = false;
-        check(invoke(hooks, presenter) == ORIGINAL, "Live disable did not retain original");
-        enabled[0] = true; presenter.mFeatureListener = null;
+        presenter.mode = "common"; presenter.mFeatureListener = null;
         check(Boolean.FALSE.equals(invoke(hooks, presenter)), "Missing native listener accepted");
         presenter.mFeatureListener = state; presenter.host = null;
         check(Boolean.FALSE.equals(invoke(hooks, presenter)), "Missing native activity accepted");
-        HookInstaller off = new HookInstaller(); enabled[0] = false;
-        CameraLensHooks.install(off, CameraNativeLensTest.class.getClassLoader(), "unused", "unused");
-        check(off.installed == 0, "Disabled feature scanned or installed");
-        enabled[0] = true;
+        check(reads[0] == 0, "Former camera switch still queried");
         List<Method> wrong = new java.util.ArrayList<>(targets);
         wrong.set(5, Presenter.class.getMethod("isFrontCamera"));
         check(!CameraLensBinding.valid(wrong), "Instance lock method accepted");
         wrong = new java.util.ArrayList<>(targets);
         wrong.set(1, MissingListener.class.getMethod("eligibility"));
         check(install(wrong).installed == 0, "Missing native field installed a partial hook");
-        System.out.println("PASS: native presenter, children, entry, lock/UI conjunction, unlock recovery, original modes and live disable");
+        System.out.println("PASS: default native presenter, children, entry, lock/UI conjunction, unlock recovery and original modes");
     }
     static List<Method> targets() throws Exception {
         return List.of(NativeMode.class.getMethod("gate", String.class), Presenter.class.getMethod("eligibility"),

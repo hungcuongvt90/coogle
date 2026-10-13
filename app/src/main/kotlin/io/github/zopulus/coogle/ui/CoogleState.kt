@@ -3,7 +3,7 @@ package io.github.zopulus.coogle.ui
 import io.github.zopulus.coogle.FeaturePolicy
 
 enum class CompanionState(val summary: String) {
-    UNKNOWN("附属模块：点击管理可检测安装状态"),
+    UNKNOWN("附属模块：开启时自动检测"),
     CHECKING("附属模块：正在检测安装状态…"),
     MISSING("附属模块：未安装"),
     DISABLED("附属模块：已禁用"),
@@ -28,7 +28,7 @@ data class CoogleState(
 ) {
     companion object {
         val featureKeys = listOf(FeaturePolicy.HEY_GOOGLE, FeaturePolicy.GMS, FeaturePolicy.GOOGLE_ENTRY,
-            FeaturePolicy.NAVIGATION, FeaturePolicy.SEARCH_BAR, FeaturePolicy.LENS, FeaturePolicy.CAMERA_LENS,
+            FeaturePolicy.NAVIGATION, FeaturePolicy.SEARCH_BAR, FeaturePolicy.LENS,
             FeaturePolicy.WALLET, FeaturePolicy.QUICK_ENTRIES)
     }
 }
