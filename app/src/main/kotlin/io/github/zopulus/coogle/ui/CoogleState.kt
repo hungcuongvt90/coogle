@@ -11,7 +11,7 @@ enum class CompanionState(val summary: String) {
     PENDING("附属模块：已安装请重启设备")
 }
 
-enum class DialogKind { NONE, STATUS, INSTALL, INSTALLED, RESTART, REBOOT, HIDE_ICON, ERROR }
+enum class DialogKind { NONE, STATUS, INSTALL, INSTALLED, RESTART, HIDE_ICON, ERROR }
 
 data class CoogleState(
     val connected: Boolean? = null,
@@ -22,7 +22,6 @@ data class CoogleState(
     val assistant: String = "当前数字助理：读取中…",
     val companion: CompanionState = CompanionState.UNKNOWN,
     val companionChecking: Boolean = false,
-    val companionCached: Boolean = false,
     val companionError: String = "",
     val iconHidden: Boolean = false,
     val dialog: DialogKind = DialogKind.NONE,
@@ -30,15 +29,12 @@ data class CoogleState(
 ) {
     val heyAvailable: Boolean get() = companion == CompanionState.READY || companion == CompanionState.PENDING
     val heyDescription: String get() = if (companion == CompanionState.UNKNOWN || companion == CompanionState.MISSING)
-        "需点击左上角安装附属模块" else "补全系统级 Voice Match 唤醒功能"
+        "需点击左上角安装附属模块" else "补全系统级 Voice Match 功能"
     val companionSummary: String get() = when {
         companionError.isNotEmpty() -> if (companion == CompanionState.UNKNOWN) "附属模块：检测失败"
-            else "${companion.summary}（上次确认，检测失败）"
+            else "${companion.summary}（检测失败）"
         busy -> if (companion == CompanionState.UNKNOWN) "附属模块：正在安装…"
             else "${companion.summary}（正在安装…）"
-        companionChecking -> if (companion == CompanionState.UNKNOWN) "附属模块：正在检测…"
-            else "${companion.summary}（正在检测…）"
-        companionCached -> "${companion.summary}（上次确认）"
         else -> companion.summary
     }
     companion object {

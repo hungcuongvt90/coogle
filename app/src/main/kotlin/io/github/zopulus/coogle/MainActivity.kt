@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
             CoogleState.featureKeys.associateWith { uiCache.getBoolean(it, FeaturePolicy.defaultValue(it)) } else emptyMap()
         val companion = runCatching { CompanionState.valueOf(uiCache.getString("companion", "UNKNOWN")!!) }
             .getOrDefault(CompanionState.UNKNOWN)
-        state = state.copy(features = cached, companion = companion, companionCached = companion != CompanionState.UNKNOWN,
+        state = state.copy(features = cached, companion = companion,
             assistant = AssistantSelection.summary(this), iconHidden = iconHidden())
         SettingsConnection.connect(this)
         main.postDelayed(connectionTimeout, 700)
@@ -69,8 +69,7 @@ class MainActivity : ComponentActivity() {
                 CoogleScreen(state, ::changeSetting, ::openAssistant, ::changeIconVisibility,
                     { showDialog(DialogKind.STATUS) }, ::openRepository,
                     ::confirmDialog, ::dismissDialog,
-                    { showDialog(DialogKind.INSTALL) }, { showDialog(DialogKind.RESTART) },
-                    { showDialog(DialogKind.REBOOT) })
+                    { showDialog(DialogKind.INSTALL) }, { showDialog(DialogKind.RESTART) })
             }
         }
     }
@@ -189,7 +188,7 @@ class MainActivity : ComponentActivity() {
                     confirmCompanion(installed)
                 }.onFailure {
                     val message = "${it.message ?: "无法检查附属模块"}。请确认 Coogle 的 Root 授权，或从模块状态重新检测。"
-                    state = state.copy(companionError = message, companionCached = state.companion != CompanionState.UNKNOWN)
+                    state = state.copy(companionError = message)
                 }
             }
         }
@@ -218,23 +217,23 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun confirmCompanion(value: CompanionState) {
-        state = state.copy(companion = value, companionCached = false, companionError = "")
+        state = state.copy(companion = value, companionError = "")
         uiCache.edit { putString("companion", value.name) }
     }
 
-    private fun restartScopes(reboot: Boolean) {
+    private fun restartScopes() {
         if (state.restarting || state.busy || state.scopePending) return
         state = state.copy(restarting = true)
         worker.execute {
             val result = runCatching {
-                val command = if (reboot) "reboot" else ScopeRestart.command(SettingsConnection.currentScope(), android.os.Process.myUid() / 100000)
+                val command = ScopeRestart.command(SettingsConnection.currentScope(), android.os.Process.myUid() / 100000)
                 RootShell.run(command, 20)
             }
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread
                 state = state.copy(restarting = false)
                 result.onSuccess {
-                    if (!reboot) Toast.makeText(this, "作用域已重启，请重新打开对应应用。", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "作用域已重启，请重新打开对应应用。", Toast.LENGTH_LONG).show()
                 }.onFailure { error(it.message ?: "无法重启作用域") }
             }
         }
@@ -269,8 +268,7 @@ class MainActivity : ComponentActivity() {
         dismissDialog()
         when (dialog) {
             DialogKind.INSTALL -> installCompanion()
-            DialogKind.RESTART -> restartScopes(false)
-            DialogKind.REBOOT -> restartScopes(true)
+            DialogKind.RESTART -> restartScopes()
             DialogKind.HIDE_ICON -> setIconHidden(true)
             else -> Unit
         }

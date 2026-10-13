@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.List;
 
-/** Restart selected apps while keeping system_server behind a separate reboot action. */
+/** Restart selected apps without terminating system_server. */
 final class ScopeRestart {
     static String command(List<String> packages, int user) throws IOException {
         StringBuilder command = new StringBuilder();

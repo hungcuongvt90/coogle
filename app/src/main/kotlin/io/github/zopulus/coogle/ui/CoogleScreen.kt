@@ -25,9 +25,9 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.HighlightOff
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.rounded.Extension
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.RestartAlt
+import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.DashboardCustomize
@@ -42,7 +42,7 @@ import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.TwoRowsTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.ListItemDefaults
@@ -82,8 +82,7 @@ fun CoogleScreen(
     onDialogConfirm: () -> Unit,
     onDialogDismiss: () -> Unit,
     onInstall: () -> Unit,
-    onRestart: () -> Unit,
-    onReboot: () -> Unit
+    onRestart: () -> Unit
 ) {
     val bar = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     Scaffold(
@@ -91,17 +90,22 @@ fun CoogleScreen(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
-            LargeFlexibleTopAppBar(
-                title = { Text("Coogle") },
-                subtitle = { Text("让国行版ColorOS更加Google") },
+            TwoRowsTopAppBar(
+                // Match KernelSU's LargeFlexibleTopAppBar title tokens; only the expanded row has a subtitle.
+                title = { expanded -> Text("Coogle", style = if (expanded) MaterialTheme.typography.displaySmall else MaterialTheme.typography.titleLarge) },
+                subtitle = { expanded -> if (expanded) Text("让国行版ColorOS更加Google", style = MaterialTheme.typography.titleMedium) },
+                collapsedHeight = TopAppBarDefaults.LargeAppBarCollapsedHeight,
+                expandedHeight = TopAppBarDefaults.LargeFlexibleAppBarWithSubtitleExpandedHeight,
                 navigationIcon = {
-                    IconButton(onClick = onInstall, enabled = state.connected == true && !state.busy && !state.restarting && !state.scopePending) {
-                        Icon(Icons.Rounded.Download, contentDescription = "安装附属模块")
+                    val enabled = state.connected == true && !state.busy && !state.restarting && !state.scopePending
+                    IconButton(onClick = onInstall, enabled = enabled) {
+                        ControlIcon(Icons.Outlined.Extension, "安装附属模块", enabled)
                     }
                 },
                 actions = {
-                    IconButton(onClick = onRestart, enabled = state.connected == true && !state.busy && !state.restarting && !state.scopePending) {
-                        Icon(Icons.Rounded.RestartAlt, contentDescription = "重启作用域")
+                    val enabled = state.connected == true && !state.busy && !state.restarting && !state.scopePending
+                    IconButton(onClick = onRestart, enabled = enabled) {
+                        ControlIcon(Icons.Outlined.RestartAlt, "重启作用域", enabled)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -160,14 +164,14 @@ fun CoogleScreen(
             val available = state.connected == true && !state.scopePending
             Group("数字助理") {
                 SettingRow(0, 3, Icons.Rounded.RecordVoiceOver, "默认数字助理", state.assistant, onClick = onAssistant)
-                ToggleRow(1, 3, Icons.Rounded.Mic, "开启 Hey Google", state.heyDescription,
+                ToggleRow(1, 3, Icons.Rounded.Mic, "Hey Google", state.heyDescription,
                     checked = state.features[FeaturePolicy.HEY_GOOGLE], enabled = available && !state.busy && state.heyAvailable,
                     onChange = { onSetting(FeaturePolicy.HEY_GOOGLE, it) })
                 ToggleRow(2, 3, Icons.Rounded.CenterFocusStrong, "Google智能镜头", "补全Google智能镜头功能",
                     state.features[FeaturePolicy.LENS], available, { onSetting(FeaturePolicy.LENS, it) })
             }
             Group("系统设置") {
-                ToggleRow(0, 6, Icons.Rounded.TouchApp, "系统导航方式", "补全设置中的导航方式。圈定即搜实时翻译功能需安装附属模块",
+                ToggleRow(0, 6, Icons.Rounded.TouchApp, "系统导航方式", "补全设置中的导航方式，圈定即搜实时翻译功能需安装附属模块",
                     state.features[FeaturePolicy.NAVIGATION], available, { onSetting(FeaturePolicy.NAVIGATION, it) })
                 ToggleRow(1, 6, Icons.Rounded.Search, "Google搜索框", "在桌面底部显示 Google 搜索框",
                     state.features[FeaturePolicy.SEARCH_BAR], available, { onSetting(FeaturePolicy.SEARCH_BAR, it) })
@@ -188,7 +192,13 @@ fun CoogleScreen(
             Spacer(Modifier.height(24.dp))
         }
     }
-    CoogleDialog(state, onDialogConfirm, onDialogDismiss, onReboot)
+    CoogleDialog(state, onDialogConfirm, onDialogDismiss)
+}
+
+@Composable
+private fun ControlIcon(vector: ImageVector, description: String? = null, enabled: Boolean = true) {
+    Icon(vector, contentDescription = description, modifier = Modifier.size(24.dp),
+        tint = MaterialTheme.colorScheme.secondary.copy(alpha = if (enabled) 1f else 0.38f))
 }
 
 @Composable
@@ -247,13 +257,12 @@ private fun ToggleRow(index: Int, count: Int, icon: ImageVector, title: String, 
 }
 
 @Composable
-private fun CoogleDialog(state: CoogleState, onConfirm: () -> Unit, onDismiss: () -> Unit, onReboot: () -> Unit) {
+private fun CoogleDialog(state: CoogleState, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     if (state.dialog == DialogKind.NONE) return
     val title = when (state.dialog) {
         DialogKind.STATUS -> "模块状态"
         DialogKind.INSTALL -> if (state.companion == CompanionState.UPDATE_REQUIRED) "更新附属模块" else "安装附属模块"
         DialogKind.RESTART -> "重启作用域"
-        DialogKind.REBOOT -> "重启设备？"
         DialogKind.INSTALLED -> "安装完成"
         DialogKind.HIDE_ICON -> "隐藏桌面图标？"
         else -> "操作未完成"
@@ -262,8 +271,7 @@ private fun CoogleDialog(state: CoogleState, onConfirm: () -> Unit, onDismiss: (
         DialogKind.STATUS -> "在 LSPosed 中启用 Coogle 并勾选推荐作用域。更改设置后，重启对应作用域生效。\n\n${state.companionSummary}" +
             if (state.companionError.isNotEmpty()) "\n${state.companionError}" else ""
         DialogKind.INSTALL -> "${state.companionSummary}\n\n附属模块提供 Google 系统应用、Voice Match 注册组件及实时翻译配置。安装会请求 Root 授权。\n\n安装会保留 Hey Google 的开关选择，请重启设备完成挂载。"
-        DialogKind.RESTART -> "重启应用作用域会关闭 LSPosed 中已勾选的应用，系统界面可能短暂重载。之后请重新打开对应应用。\n\n系统框架及 Hey Google 组件配置需要重启设备才能生效。操作会请求 Root 授权。"
-        DialogKind.REBOOT -> "将重启设备，使系统框架与附属模块配置生效。请先保存其他应用中的内容。"
+        DialogKind.RESTART -> "重启目标作用域会关闭 LSPosed 中已勾选的应用，系统界面可能短暂重载。之后请重新打开对应应用。\n\n系统框架及 Hey Google 组件配置需要重启设备才能生效。操作会请求 Root 授权。"
         DialogKind.INSTALLED -> if (state.companion == CompanionState.DISABLED)
             "Coogle 附属模块已安装，但尚未启用。请在 KernelSU 中启用附属模块后重启设备。"
             else if (state.features[FeaturePolicy.HEY_GOOGLE] == true)
@@ -274,8 +282,7 @@ private fun CoogleDialog(state: CoogleState, onConfirm: () -> Unit, onDismiss: (
     }
     val confirm = when (state.dialog) {
         DialogKind.STATUS -> "重新检测附属模块"
-        DialogKind.RESTART -> "重启应用作用域"
-        DialogKind.REBOOT -> "重启设备"
+        DialogKind.RESTART -> "重启目标作用域"
         DialogKind.INSTALL -> if (state.companion == CompanionState.UPDATE_REQUIRED) "更新" else "安装"
         DialogKind.HIDE_ICON -> "隐藏"
         else -> "知道了"
@@ -283,9 +290,11 @@ private fun CoogleDialog(state: CoogleState, onConfirm: () -> Unit, onDismiss: (
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = MaterialTheme.shapes.extraLarge,
-        icon = { Icon(if (state.dialog in setOf(DialogKind.INSTALL, DialogKind.INSTALLED))
-            Icons.Rounded.Extension else if (state.dialog in setOf(DialogKind.RESTART, DialogKind.REBOOT)) Icons.Rounded.RestartAlt
-            else if (state.dialog == DialogKind.HIDE_ICON) Icons.Rounded.VisibilityOff else Icons.Rounded.Info, null) },
+        icon = {
+            if (state.dialog in setOf(DialogKind.INSTALL, DialogKind.INSTALLED)) ControlIcon(Icons.Outlined.Extension)
+            else if (state.dialog == DialogKind.RESTART) ControlIcon(Icons.Outlined.RestartAlt)
+            else Icon(if (state.dialog == DialogKind.HIDE_ICON) Icons.Rounded.VisibilityOff else Icons.Rounded.Info, null)
+        },
         title = { Text(title) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
@@ -293,13 +302,10 @@ private fun CoogleDialog(state: CoogleState, onConfirm: () -> Unit, onDismiss: (
             }
         },
         confirmButton = {
-            Column(horizontalAlignment = Alignment.End) {
-                if (state.dialog == DialogKind.RESTART) TextButton(onClick = onReboot, enabled = !state.restarting) { Text("重启设备") }
-                TextButton(onClick = onConfirm, enabled = !state.busy && !state.restarting &&
-                    (state.dialog != DialogKind.STATUS || (state.connected == true && !state.scopePending && !state.companionChecking))) { Text(confirm) }
-            }
+            TextButton(onClick = onConfirm, enabled = !state.busy && !state.restarting &&
+                (state.dialog != DialogKind.STATUS || (state.connected == true && !state.scopePending && !state.companionChecking))) { Text(confirm) }
         },
-        dismissButton = if (state.dialog in setOf(DialogKind.STATUS, DialogKind.INSTALL, DialogKind.RESTART, DialogKind.REBOOT, DialogKind.HIDE_ICON)) {
+        dismissButton = if (state.dialog in setOf(DialogKind.STATUS, DialogKind.INSTALL, DialogKind.RESTART, DialogKind.HIDE_ICON)) {
             { TextButton(onClick = onDismiss) { Text(if (state.dialog == DialogKind.STATUS) "关闭" else "取消") } }
         } else null
     )
