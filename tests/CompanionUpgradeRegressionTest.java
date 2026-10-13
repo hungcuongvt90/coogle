@@ -16,22 +16,22 @@ public final class CompanionUpgradeRegressionTest {
             failures += expect(active, staged, "UPDATE_REQUIRED", "installed released 1.3.2 (no payload revision)");
             fixture(staged, "controlVersion=1\nversion=1.3.2\nversionCode=132\n");
             failures += expect(active, staged, "UPDATE_REQUIRED", "staged old 1.3.2 must not hide missing update");
-            fixture(staged, "controlVersion=1\npayloadRevision=2\n");
+            fixture(staged, "controlVersion=1\npayloadRevision=3\n");
             failures += expect(active, staged, "PENDING", "new payload staged over old active module");
             try(var files=Files.walk(staged)) { for(Path p:files.sorted(Comparator.reverseOrder()).toList()) Files.delete(p); }
-            fixture(active, "controlVersion=1\npayloadRevision=2\n");
+            fixture(active, "controlVersion=1\npayloadRevision=3\n");
             failures += expect(active, staged, "READY", "new payload after reboot");
-            for(String revision:new String[]{"1","bad","-1","2\npayloadRevision=3"}) {
+            for(String revision:new String[]{"1","2","bad","-1","2\npayloadRevision=3"}) {
                 fixture(active,"controlVersion=1\npayloadRevision="+revision+"\n");
                 failures += expect(active,staged,"UPDATE_REQUIRED","old/invalid revision "+revision.replace('\n',' '));
             }
-            fixture(active,"controlVersion=1\npayloadRevision=3\n");
+            fixture(active,"controlVersion=1\npayloadRevision=4\n");
             failures += expect(active,staged,"READY","newer compatible payload must not be downgraded");
             Files.delete(active.resolve("mount-google.sh"));
             failures += expect(active,staged,"UPDATE_REQUIRED","required mount helper missing");
-            fixture(active,"controlVersion=2\npayloadRevision=2\n");
+            fixture(active,"controlVersion=2\npayloadRevision=3\n");
             failures += expect(active,staged,"UPDATE_REQUIRED","incompatible control protocol");
-            fixture(active,"controlVersion=1\npayloadRevision=2\n");
+            fixture(active,"controlVersion=1\npayloadRevision=3\n");
             Files.createFile(active.resolve("disable"));
             failures += expect(active, staged, "DISABLED", "disabled current payload");
         } finally {
@@ -46,11 +46,14 @@ public final class CompanionUpgradeRegressionTest {
         Files.writeString(dir.resolve("mount-google.sh"),"fixture\n");
         Files.writeString(dir.resolve("features.conf"),"hey=0\n");
         Files.writeString(dir.resolve("applied-features.conf"),"hey=0\n");
+        Files.writeString(dir.resolve("applied-boot-id"),"current-boot\n");
     }
     private static int expect(Path active,Path staged,String expected,String name) throws Exception {
         Method method=CompanionInstaller.class.getDeclaredMethod("statusCommand"); method.setAccessible(true);
         String command=((String)method.invoke(null)).replace("/data/adb/modules/coogle_companion",unix(active))
+                .replace("/proc/sys/kernel/random/boot_id",unix(active.getParent().resolve("boot-id")))
                 .replace("/data/adb/modules_update/coogle_companion",unix(staged));
+        Files.writeString(active.getParent().resolve("boot-id"),"current-boot\n");
         Process p=new ProcessBuilder("C:/Program Files/Git/bin/bash.exe","-c",command).redirectErrorStream(true).start();
         String actual=new String(p.getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8).trim();
         if(p.waitFor()!=0) throw new AssertionError(actual);

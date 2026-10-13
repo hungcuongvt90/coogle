@@ -9,19 +9,15 @@ final class CompanionSettings {
     interface Support {
         String check() throws Exception;
         String set(boolean enabled) throws Exception;
-        String sync(boolean enabled) throws Exception;
         void install(Context context) throws Exception;
     }
     static final CompanionSettings INSTANCE = new CompanionSettings(new Support() {
         public String check() throws Exception { return CompanionInstaller.check(); }
         public String set(boolean enabled) throws Exception { return CompanionInstaller.setHeyGoogle(enabled); }
-        public String sync(boolean enabled) throws Exception { return CompanionInstaller.syncHeyGoogle(enabled); }
         public void install(Context context) throws Exception { CompanionInstaller.install(context); }
     });
     private final Support support;
     CompanionSettings(Support support) { this.support = support; }
-
-    synchronized String check() throws Exception { return support.check(); }
 
     synchronized String save(SharedPreferences settings, boolean enabled) throws Exception {
         boolean previous = requested(settings);
@@ -50,23 +46,17 @@ final class CompanionSettings {
         }
     }
 
-    synchronized String sync(SharedPreferences settings) throws Exception {
-        String state = support.sync(requested(settings));
-        if ("UPDATE_REQUIRED".equals(state)) {
-            if (settings.getBoolean("companion_ready", false) || !settings.getBoolean("companion_known", false))
-                commit(settings.edit().putBoolean("companion_ready", false).putBoolean("companion_known", true));
-        } else if (!installed(state)) {
-            // Also clear the saved payload choice, so re-enabling the root module
-            // later cannot restore Hey Google while the APK switch is off.
-            save(settings, false);
-        } else if (!settings.getBoolean("companion_ready", false) || !settings.getBoolean("companion_known", false)) {
-            commit(settings.edit().putBoolean("companion_ready", true).putBoolean("companion_known", true));
-        }
+    synchronized String refresh(SharedPreferences settings) throws Exception {
+        String state = support.check();
+        boolean ready = installed(state), known = !"MISSING".equals(state);
+        if (settings.getBoolean("companion_ready", false) != ready || settings.getBoolean("companion_known", false) != known)
+            commit(settings.edit().putBoolean("companion_ready", ready).putBoolean("companion_known", known));
+        // Detection does not rewrite the user's choice or root configuration.
         return state;
     }
 
-    synchronized String install(Context context, SharedPreferences settings, boolean enableHey) throws Exception {
-        boolean enabled = enableHey || requested(settings);
+    synchronized String install(Context context, SharedPreferences settings) throws Exception {
+        boolean enabled = requested(settings);
         support.install(context);
         return save(settings, enabled);
     }

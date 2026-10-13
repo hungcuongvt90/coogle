@@ -41,11 +41,17 @@ class NoMountRegressionTest(unittest.TestCase):
         (module/'native-translate.sh').write_bytes(b'prepare_native_translation() { return 0; }\n')
         (module/'features.conf').write_bytes(b'hey=0\n')
         boot=payload()['post-fs-data.sh'].decode().replace('MODDIR=${0%/*}',f'MODDIR="{unix(module)}"')
+        (root/'boot-id').write_bytes(b'current-boot\n')
+        boot=boot.replace('/proc/sys/kernel/random/boot_id',unix(root/'boot-id'))
         boot=boot.replace('/data/adb',unix(root))
         mocks=f'readlink() {{ printf "%s\\n" "{unix(backend)}"; }};\n'
         run=root/'boot.sh'; run.write_bytes((mocks+boot).encode())
         result=subprocess.run([BASH,str(run)],capture_output=True,text=True)
         self.assertEqual(result.returncode,expected,result.stderr)
+        if expected == 0:
+            self.assertEqual((module/'applied-boot-id').read_bytes(),b'current-boot\n')
+        else:
+            self.assertFalse((module/'applied-boot-id').exists())
 
     def test_active_nomount_removes_old_replace_and_preserves_apks(self):
         with tempfile.TemporaryDirectory() as d:

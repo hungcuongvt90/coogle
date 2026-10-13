@@ -21,7 +21,7 @@ final class SettingsConnection {
             registered = true;
             XposedServiceHelper.registerListener(new XposedServiceHelper.OnServiceListener() {
                 @Override public void onServiceBind(XposedService value) { update(value); }
-                @Override public void onServiceDied(XposedService value) { update(null); }
+                @Override public void onServiceDied(XposedService value) { disconnected(value); }
             });
         }
         value.onFrameworkChanged(service);
@@ -39,6 +39,10 @@ final class SettingsConnection {
                 target.onFrameworkChanged(value);
             }
         });
+    }
+
+    private static synchronized void disconnected(XposedService value) {
+        if (service == value) update(null);
     }
 
     static synchronized void requestScopes(String feature) {
@@ -74,6 +78,10 @@ final class SettingsConnection {
 
     static synchronized void detach(MainActivity value) {
         if (activity.get() == value) activity.clear();
+    }
+    static synchronized List<String> currentScope() throws java.io.IOException {
+        if (service == null) throw new java.io.IOException("请先激活 Coogle 并连接 LSPosed。");
+        return service.getScope();
     }
     private SettingsConnection() { }
 }

@@ -15,10 +15,11 @@ public final class CompanionControlTest {
             Files.writeString(active.resolve("module.prop"), "id=coogle_companion\n");
             check(run(true, active, pending).equals("UPDATE_REQUIRED"), "Old module accepted as controllable");
             check(!Files.exists(active.resolve("features.conf")), "Old module was modified");
-            Files.writeString(active.resolve("module.prop"), "id=coogle_companion\ncontrolVersion=1\npayloadRevision=2\n");
+            Files.writeString(active.resolve("module.prop"), "id=coogle_companion\ncontrolVersion=1\npayloadRevision=3\n");
             Files.writeString(active.resolve("features.sh"), "fixture\n");
             Files.writeString(active.resolve("mount-google.sh"), "fixture\n");
             Files.writeString(active.resolve("applied-features.conf"), "hey=0\n");
+            Files.writeString(active.resolve("applied-boot-id"), "current-boot\n");
             check(run(false, active, pending).equals("READY"), "Matching state not ready");
             var timestamp = java.nio.file.attribute.FileTime.fromMillis(1_000_000);
             Files.setLastModifiedTime(active.resolve("features.conf"), timestamp);
@@ -26,35 +27,45 @@ public final class CompanionControlTest {
             check(Files.getLastModifiedTime(active.resolve("features.conf")).equals(timestamp),
                     "Unchanged Hey state rewrote configuration");
             check(!Files.exists(active.resolve("features.conf.tmp")), "Unchanged sync left temporary file");
-            check(run(true, active, pending).equals("PENDING"), "Changed state omitted reboot requirement");
+            check(run(true, active, pending).equals("READY"), "Hey Google change altered module installation state");
             check(Files.readString(active.resolve("features.conf")).equals("hey=1\n"), "Hey switch not written");
             Files.createDirectories(pending);
             Files.copy(active.resolve("module.prop"), pending.resolve("module.prop"));
             Files.copy(active.resolve("features.sh"), pending.resolve("features.sh"));
             Files.copy(active.resolve("mount-google.sh"), pending.resolve("mount-google.sh"));
             check(run(false, active, pending).equals("PENDING"), "Staged module not reported");
+            Files.createFile(active.resolve("disable"));
+            check(runCommand(status(), active, pending).equals("DISABLED"), "Staging concealed KernelSU disabled state");
+            Files.delete(active.resolve("disable"));
             check(Files.readString(active.resolve("features.conf")).equals("hey=0\n")
                     && Files.readString(pending.resolve("features.conf")).equals("hey=0\n"), "Staged update lost switch state");
             Files.createFile(pending.resolve("disable"));
             check(run(false, active, pending).equals("DISABLED"), "Disabled module accepted");
-            check(runCommand(CompanionInstaller.syncCommand(true), active, pending).equals("DISABLED"),
+            check(runCommand(status(), active, pending).equals("DISABLED"),
                     "Automatic sync ignored disabled state");
             check(Files.readString(pending.resolve("features.conf")).equals("hey=0\n"),
                     "Automatic sync modified disabled module");
             Files.delete(pending.resolve("disable"));
-            check(runCommand(CompanionInstaller.syncCommand(true), active, pending).equals("PENDING"),
+            check(run(true, active, pending).equals("PENDING"),
                     "Automatic sync omitted pending state");
             check(Files.readString(active.resolve("features.conf")).equals("hey=1\n")
                     && Files.readString(pending.resolve("features.conf")).equals("hey=1\n"),
                     "Automatic sync did not mirror both installed directories");
             for (String marker : new String[]{"skip_mount", "component-error", "remove"}) {
                 Files.createFile(pending.resolve(marker));
-                check(runCommand(CompanionInstaller.syncCommand(false), active, pending).equals("DISABLED"),
+                check(runCommand(status(), active, pending).equals("DISABLED"),
                         "Unavailable mounts accepted: " + marker);
                 check(Files.readString(pending.resolve("features.conf")).equals("hey=1\n"),
                         "Automatic sync modified unavailable mounts");
                 Files.delete(pending.resolve(marker));
             }
+            Files.delete(pending.resolve("module.prop"));
+            Files.writeString(active.resolve("applied-boot-id"), "previous-boot\n");
+            check(runCommand(status(), active, pending).equals("PENDING"), "Previous boot reported as enabled in current boot");
+            Files.writeString(active.resolve("applied-boot-id"), "current-boot\n");
+            Files.writeString(active.resolve("features.conf"), "hey=0\n");
+            Files.writeString(active.resolve("applied-features.conf"), "hey=1\n");
+            check(runCommand(status(), active, pending).equals("READY"), "Hey Google disable changed module state");
             System.out.println("PASS: Hey Google mirror, staged updates, reboot requirement and legacy detection");
         } finally {
             try (var files = Files.walk(root)) {
@@ -65,10 +76,17 @@ public final class CompanionControlTest {
     private static String run(boolean enabled, Path active, Path pending) throws Exception {
         return runCommand(CompanionInstaller.controlCommand(enabled), active, pending);
     }
+    private static String status() throws Exception {
+        var method = CompanionInstaller.class.getDeclaredMethod("statusCommand");
+        method.setAccessible(true);
+        return (String) method.invoke(null);
+    }
     private static String runCommand(String command, Path active, Path pending) throws Exception {
         command = command
+                .replace("/proc/sys/kernel/random/boot_id", unix(active.getParent().resolve("boot-id")))
                 .replace("/data/adb/modules/coogle_companion", unix(active))
                 .replace("/data/adb/modules_update/coogle_companion", unix(pending));
+        Files.writeString(active.getParent().resolve("boot-id"), "current-boot\n");
         Process process = new ProcessBuilder("C:/Program Files/Git/bin/bash.exe", "-c", command).redirectErrorStream(true).start();
         String result = new String(process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).trim();
         if (process.waitFor() != 0) throw new AssertionError(result);

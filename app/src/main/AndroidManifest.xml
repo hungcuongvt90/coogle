@@ -4,6 +4,8 @@
         <intent><action android:name="android.service.voice.VoiceInteractionService" /></intent>
         <package android:name="com.google.android.googlequicksearchbox" />
         <package android:name="com.android.settings" />
+        <package android:name="com.google.android.apps.walletnfcrel" />
+        <package android:name="com.google.android.gms" />
     </queries>
     <application android:label="Coogle" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher" android:theme="@style/AppTheme" android:description="@string/module_description" android:allowBackup="false" android:supportsRtl="true">
         <activity android:name=".MainActivity" android:exported="true">

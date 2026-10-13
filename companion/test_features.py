@@ -88,6 +88,8 @@ class FeaturesTest(unittest.TestCase):
             (work/'mount-google.sh').write_bytes((ROOT/'module/mount-google.sh').read_bytes().replace(b'\r\n',b'\n'))
             (work/'native-translate.sh').write_bytes(native.encode())
             script = (ROOT/'module/post-fs-data.sh').read_text(encoding='utf-8').replace('MODDIR=${0%/*}', f'MODDIR="{unix(work)}"')
+            (work/'boot-id').write_bytes(b'current-boot\n')
+            script = script.replace('/proc/sys/kernel/random/boot_id', unix(work/'boot-id'))
             script = 'idmap2() { [ "$1" != lookup ] || echo \'value="com.google.android.googlequicksearchbox\'; };\n'+script
             (work/'post-fs-data.sh').write_bytes(script.encode())
             for name in ('system/etc/permissions/coogle-live-translate.xml',
