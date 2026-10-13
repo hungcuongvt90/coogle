@@ -21,7 +21,25 @@ final class WalletPayment implements WalletSettings.Payment {
     // Android's UserHandle.PER_USER_RANGE.
     private final int user = Process.myUid() / 100000;
     WalletPayment(Context context) { this.context = context; }
-    private String current() { return Settings.Secure.getString(context.getContentResolver(), DEFAULT); }
+    interface ReadSetting { String read() throws Exception; }
+    private String current() throws Exception {
+        return readCurrent(() -> Settings.Secure.getString(context.getContentResolver(), DEFAULT),
+                () -> RootShell.run(readCommand(user), 20));
+    }
+    static String readCurrent(ReadSetting direct, ReadSetting privileged) throws Exception {
+        try { return direct.read(); }
+        catch (SecurityException restricted) {
+            // Android S+ hides this key from ordinary apps, including an already selected wallet.
+            String value = privileged.read().trim();
+            if (value.isEmpty() || "null".equals(value)) return null;
+            if (!value.matches("[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)+/[A-Za-z0-9_.$]+"))
+                throw new IOException("无法读取系统默认付款应用，未更改付款设置。");
+            return value;
+        }
+    }
+    static String readCommand(int user) {
+        return "settings --user " + user + " get secure " + DEFAULT;
+    }
 
     public boolean isGoogleDefault() throws Exception {
         PackageManager pm = context.getPackageManager();
