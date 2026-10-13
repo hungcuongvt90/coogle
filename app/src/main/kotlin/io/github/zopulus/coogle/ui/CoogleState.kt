@@ -20,6 +20,7 @@ data class CoogleState(
     val features: Map<String, Boolean> = featureKeys.associateWith(FeaturePolicy::defaultValue),
     val enableHeyOnInstall: Boolean = false,
     val busy: Boolean = false,
+    val scopePending: Boolean = false,
     val assistant: String = "当前数字助理：读取中…",
     val companion: CompanionState = CompanionState.UNKNOWN,
     val iconHidden: Boolean = false,

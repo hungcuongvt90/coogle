@@ -76,14 +76,32 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun refreshKnownCompanion() {
+        if (state.scopePending) return
         val settings = preferences ?: return
         if (runCatching { CompanionSettings.shouldCheck(settings) }.getOrDefault(false)) checkCompanion(false)
     }
 
     private fun changeSetting(key: String, enabled: Boolean) {
-        if (state.busy || preferences == null || key in savingKeys) return
-        if (key == FeaturePolicy.HEY_GOOGLE && enabled) checkCompanion(true)
-        else saveSetting(key, enabled)
+        if (state.busy || state.scopePending || preferences == null || key in savingKeys) return
+        if (state.features[key] == enabled) return
+        if (enabled) SettingsConnection.requestScopes(key)
+        else saveSetting(key, false)
+    }
+
+    fun onScopePending(pending: Boolean) {
+        if (!isDestroyed) state = state.copy(scopePending = pending)
+    }
+
+    fun onScopeResult(key: String, message: String?) {
+        if (isDestroyed) return
+        if (message != null) { error(message); return }
+        if (preferences == null || key in savingKeys) return
+        enableSetting(key)
+    }
+
+    private fun enableSetting(key: String) {
+        if (key == FeaturePolicy.HEY_GOOGLE) checkCompanion(true)
+        else saveSetting(key, true)
     }
 
     private fun saveSetting(key: String, enabled: Boolean) {

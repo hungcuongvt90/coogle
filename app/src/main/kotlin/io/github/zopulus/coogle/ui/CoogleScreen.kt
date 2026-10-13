@@ -134,7 +134,7 @@ fun CoogleScreen(
                     }
                 )
             }
-            val available = state.connected
+            val available = state.connected && !state.scopePending
             Group("数字助理") {
                 SettingRow(0, 3, Icons.Rounded.RecordVoiceOver, "默认数字助理", state.assistant, onClick = onAssistant)
                 ToggleRow(1, 3, Icons.Rounded.Mic, "开启 Hey Google", state.companion.summary,
@@ -148,7 +148,7 @@ fun CoogleScreen(
                     state.features[FeaturePolicy.NAVIGATION] == true, available, { onSetting(FeaturePolicy.NAVIGATION, it) })
                 ToggleRow(1, 6, Icons.Rounded.Search, "Google搜索框", "在桌面底部显示 Google 搜索框",
                     state.features[FeaturePolicy.SEARCH_BAR] == true, available, { onSetting(FeaturePolicy.SEARCH_BAR, it) })
-                ToggleRow(2, 6, Icons.Rounded.AccountBalanceWallet, "Google钱包", "启用双击电源键呼出Google钱包，需将Google钱包设置为默认付款应用",
+                ToggleRow(2, 6, Icons.Rounded.AccountBalanceWallet, "Google钱包", "启用双击电源键呼出Google钱包",
                     state.features[FeaturePolicy.WALLET] == true, available, { onSetting(FeaturePolicy.WALLET, it) })
                 ToggleRow(3, 6, Icons.Rounded.DashboardCustomize, "快捷入口与控制中心", "补全锁屏快捷入口与下拉控制中心的原生开关",
                     state.features[FeaturePolicy.QUICK_ENTRIES] == true, available, { onSetting(FeaturePolicy.QUICK_ENTRIES, it) })
@@ -230,7 +230,7 @@ private fun CoogleDialog(state: CoogleState, onConfirm: () -> Unit, onDismiss: (
         else -> "操作未完成"
     }
     val message = when (state.dialog) {
-        DialogKind.STATUS -> "在 LSPosed 中启用 Coogle 并勾选推荐作用域。更改设置后，重启对应作用域生效。\n\n系统兼容性仅检查 ColorOS 17。"
+        DialogKind.STATUS -> "在 LSPosed 中启用 Coogle 并勾选推荐作用域。更改设置后，重启对应作用域生效。"
         DialogKind.INSTALL -> "Hey Google 需要安装或更新新版附属模块。安装会请求 Root 授权。\n\n请设置 Hey Google 后重启，实时翻译会在附属配置生效后自动启用。"
         DialogKind.DISABLED -> "请在 KernelSU 中启用 Coogle 附属模块，然后重新开启 Hey Google。"
         DialogKind.INSTALLED -> if (state.features[FeaturePolicy.HEY_GOOGLE] == true)
