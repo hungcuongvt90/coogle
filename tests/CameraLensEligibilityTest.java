@@ -6,9 +6,9 @@ import java.lang.reflect.*;
 
 public final class CameraLensEligibilityTest {
     public static void main(String[] args) throws Throwable {
-        int[] reads = {0};
+        boolean[] lensEnabled = {true};
         FeatureConfig.attach((SharedPreferences) Proxy.newProxyInstance(SharedPreferences.class.getClassLoader(),
-                new Class<?>[]{SharedPreferences.class}, (p,m,a) -> { reads[0]++; return false; }));
+                new Class<?>[]{SharedPreferences.class}, (p,m,a) -> FeaturePolicy.LENS.equals(a[0]) && lensEnabled[0]));
         HookInstaller hooks = new HookInstaller();
         CameraLensEligibilityHooks.install(hooks, CameraLensEligibilityTest.class.getClassLoader());
         Method feature = ApplicationPackageManager.class.getMethod("hasSystemFeature", String.class, int.class);
@@ -18,11 +18,18 @@ public final class CameraLensEligibilityTest {
         check("other.camera,com.oplus.camera".equals(invoke(hooks.callbacks.get(property), "ro.com.google.lens.oem_camera_package", "other.camera")));
         check("com.oplus.camera".equals(invoke(hooks.callbacks.get(property), "ro.com.google.lens.oem_camera_package", "com.oplus.camera")));
         check("original".equals(invoke(hooks.callbacks.get(property), "other.property", "original")));
-        check(reads[0] == 0);
+        lensEnabled[0] = false;
+        check(Boolean.FALSE.equals(invoke(hooks.callbacks.get(feature), "com.google.lens.feature.CAMERA_INTEGRATION", false)));
+        check("other.camera".equals(invoke(hooks.callbacks.get(property), "ro.com.google.lens.oem_camera_package", "other.camera")));
+        check(Boolean.TRUE.equals(invoke(hooks.callbacks.get(feature), "com.google.lens.feature.CAMERA_INTEGRATION", true)));
+        HookInstaller disabled = new HookInstaller();
+        CameraLensEligibilityHooks.install(disabled, CameraLensEligibilityTest.class.getClassLoader());
+        check(disabled.installed == 0);
+        lensEnabled[0] = true;
         HookInstaller partial = new HookInstaller(); partial.failAt = 2;
         CameraLensEligibilityHooks.install(partial, CameraLensEligibilityTest.class.getClassLoader());
         check(partial.installed == 0);
-        System.out.println("PASS: default camera eligibility ignores former switch; exact keys, existing packages and rollback");
+        System.out.println("PASS: camera eligibility follows Lens switch; exact keys, existing packages and rollback");
     }
     private static Object invoke(XposedInterface.Hooker hook, String key, Object result) throws Throwable {
         check(hook != null);

@@ -9,6 +9,7 @@ final class CameraLensEligibilityHooks {
     private static final String CAMERA = "com.oplus.camera";
 
     static void install(HookInstaller hooks, ClassLoader loader) {
+        if (!FeatureConfig.enabled(FeaturePolicy.LENS)) return;
         int mark = hooks.mark();
         try {
             Class<?> pm = HookInstaller.target(loader, "android.app.ApplicationPackageManager");
@@ -16,7 +17,7 @@ final class CameraLensEligibilityHooks {
             for (Method method : pm.getDeclaredMethods()) {
                 if (!method.getName().equals("hasSystemFeature") || method.getReturnType() != boolean.class
                         || method.getParameterCount() < 1 || method.getParameterTypes()[0] != String.class) continue;
-                hooks.install(method, chain -> FEATURE.equals(chain.getArg(0))
+                hooks.install(method, chain -> FEATURE.equals(chain.getArg(0)) && FeatureConfig.enabled(FeaturePolicy.LENS)
                         ? true : chain.proceed());
                 installed = true;
             }
@@ -24,7 +25,7 @@ final class CameraLensEligibilityHooks {
             Method property = HookInstaller.target(loader, "android.os.SystemProperties").getDeclaredMethod("get", String.class, String.class);
             hooks.install(property, chain -> {
                 Object original = chain.proceed();
-                if (!PROPERTY.equals(chain.getArg(0))) return original;
+                if (!PROPERTY.equals(chain.getArg(0)) || !FeatureConfig.enabled(FeaturePolicy.LENS)) return original;
                 String value = (String) original;
                 if (value == null || value.isEmpty()) return CAMERA;
                 for (String entry : value.split(",")) if (CAMERA.equals(entry.trim())) return value;

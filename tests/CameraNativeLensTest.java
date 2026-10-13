@@ -56,9 +56,9 @@ public final class CameraNativeLensTest {
     }
     private static final Object ORIGINAL = new Object();
     public static void main(String[] args) throws Throwable {
-        int[] reads = {0};
+        boolean[] lensEnabled = {true};
         FeatureConfig.attach((SharedPreferences) Proxy.newProxyInstance(SharedPreferences.class.getClassLoader(),
-                new Class<?>[]{SharedPreferences.class}, (p,m,a) -> { reads[0]++; return false; }));
+                new Class<?>[]{SharedPreferences.class}, (p,m,a) -> FeaturePolicy.LENS.equals(a[0]) && lensEnabled[0]));
         List<Method> targets = targets();
         HookInstaller hooks = install(targets);
         check(hooks.installed == 1 && hooks.callbacks.containsKey(Presenter.class.getMethod("eligibility")),
@@ -93,7 +93,14 @@ public final class CameraNativeLensTest {
         check(Boolean.FALSE.equals(invoke(hooks, presenter)), "Missing native listener accepted");
         presenter.mFeatureListener = state; presenter.host = null;
         check(Boolean.FALSE.equals(invoke(hooks, presenter)), "Missing native activity accepted");
-        check(reads[0] == 0, "Former camera switch still queried");
+        presenter.mFeatureListener = state; presenter.host = new Activity();
+        lensEnabled[0] = false;
+        int refreshes = state.refreshes;
+        check(invoke(hooks, presenter) == ORIGINAL, "Lens switch off still restored camera entry");
+        check(state.refreshes == refreshes, "Disabled camera integration initialized native state");
+        check(install(targets).installed == 0, "Lens disabled at process start still installed camera hook");
+        lensEnabled[0] = true; presenter.ui.context = new EventMessageUIContainerContext();
+        check(Boolean.TRUE.equals(invoke(hooks, presenter)), "Lens switch on did not restore camera entry");
         List<Method> wrong = new java.util.ArrayList<>(targets);
         wrong.set(5, Presenter.class.getMethod("isFrontCamera"));
         check(!CameraLensBinding.valid(wrong), "Instance lock method accepted");
