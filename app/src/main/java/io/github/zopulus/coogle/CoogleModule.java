@@ -28,6 +28,8 @@ public final class CoogleModule extends XposedModule {
         String packageName = param.getPackageName();
         if (!SystemCompatibility.isColorOs17()) return;
         if ("com.android.launcher".equals(packageName)) SearchBarHooks.install(hooks, param.getClassLoader());
+        if ("com.oplus.camera".equals(packageName)) CameraLensHooks.install(hooks, param.getClassLoader(),
+                param.getApplicationInfo().sourceDir, param.getApplicationInfo().dataDir);
         if ("com.android.settings".equals(packageName)) SettingsHooks.installGoogleSettingsEntry(hooks, param.getClassLoader());
         if ("com.google.android.apps.walletnfcrel".equals(packageName))
             WalletPreviewHooks.install(hooks, param.getClassLoader(), param.getApplicationInfo().sourceDir,
@@ -38,9 +40,11 @@ public final class CoogleModule extends XposedModule {
                 || "com.google.android.googlequicksearchbox".equals(packageName)) {
             MigrationEntry.attach(this);
             MigrationEntry.hookPackage(packageName, param.getClassLoader());
-            if ("com.google.android.googlequicksearchbox".equals(packageName))
+            if ("com.google.android.googlequicksearchbox".equals(packageName)) {
+                CameraLensEligibilityHooks.install(hooks, param.getClassLoader());
                 LensHooks.installForApp(hooks, param.getClassLoader(), param.getApplicationInfo().sourceDir,
                         param.getApplicationInfo().dataDir);
+            }
             if ("com.android.settings".equals(packageName) && FeatureConfig.enabled(FeaturePolicy.NAVIGATION)) SettingsHooks.installSettingsHiddenSupport(hooks, param.getClassLoader());
         }
         if ("com.android.launcher".equals(packageName)) navigation.install(param.getClassLoader());

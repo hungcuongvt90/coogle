@@ -136,12 +136,14 @@ fun CoogleScreen(
             }
             val available = state.connected
             Group("数字助理") {
-                SettingRow(0, 3, Icons.Rounded.RecordVoiceOver, "默认数字助理", state.assistant, onClick = onAssistant)
-                ToggleRow(1, 3, Icons.Rounded.Mic, "开启 Hey Google", state.companion.summary,
+                SettingRow(0, 4, Icons.Rounded.RecordVoiceOver, "默认数字助理", state.assistant, onClick = onAssistant)
+                ToggleRow(1, 4, Icons.Rounded.Mic, "开启 Hey Google", state.companion.summary,
                     checked = state.features[FeaturePolicy.HEY_GOOGLE] == true, enabled = available && !state.busy,
                     onChange = { onSetting(FeaturePolicy.HEY_GOOGLE, it) })
-                ToggleRow(2, 3, Icons.Rounded.CenterFocusStrong, "Google智能镜头", "补全Google智能镜头功能",
+                ToggleRow(2, 4, Icons.Rounded.CenterFocusStrong, "Google智能镜头", "补全Google智能镜头功能",
                     state.features[FeaturePolicy.LENS] == true, available, { onSetting(FeaturePolicy.LENS, it) })
+                ToggleRow(3, 4, Icons.Rounded.CenterFocusStrong, "相机智能镜头", "在后置拍照菜单中显示 Google 智能镜头，需勾选相机作用域并重启相机与 Google",
+                    state.features[FeaturePolicy.CAMERA_LENS] == true, available, { onSetting(FeaturePolicy.CAMERA_LENS, it) })
             }
             Group("系统设置") {
                 ToggleRow(0, 6, Icons.Rounded.TouchApp, "系统导航方式", "补全设置中的导航方式。圈定即搜实时翻译功能需安装附属模块",

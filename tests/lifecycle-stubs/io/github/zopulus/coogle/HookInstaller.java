@@ -4,6 +4,9 @@ import java.lang.reflect.Executable;
 import java.util.LinkedHashMap;
 import java.util.Map;
 public class HookInstaller {
+    public static Class<?> target(ClassLoader loader, String name) throws ClassNotFoundException {
+        return Class.forName(name, false, loader);
+    }
     public int installed;
     public XposedInterface.Hooker callback;
     public final Map<Executable,XposedInterface.Hooker> callbacks = new LinkedHashMap<>();

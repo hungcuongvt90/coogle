@@ -74,7 +74,7 @@ def hotwordTestClasses = layout.buildDirectory.dir('hotword-tests')
 
 def lifecycleTestClasses = layout.buildDirectory.dir('hook-lifecycle-tests')
 tasks.register('compileHookLifecycleTests', JavaCompile) {
-    source files('../tests/CompanionControlTest.java')
+    source files('../tests/CompanionControlTest.java', '../tests/CameraLensPolicyTest.java', '../tests/CameraLensEligibilityTest.java')
     source files('../tests/CompanionSettingsTest.java')
     source files('../tests/GmsFeatureQueryTest.java')
     dependsOn 'compileReleaseJavaWithJavac'
@@ -94,7 +94,7 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
     targetCompatibility = '17'
     options.encoding = 'UTF-8'
 }
-['GmsFeatureQueryTest', 'CompanionControlTest', 'CompanionSettingsTest', 'DexTargetCacheTest', 'WalletPreviewBindingTest', 'LensHookLifecycleTest', 'SignalModelHookLifecycleTest', 'RoleReconciliationTest', 'HookInstallRollbackTest', 'HiddenCircleNoAssistantTest', 'FeatureQueryTest', 'ContextBindingCacheTest'].each { testName ->
+['CameraLensEligibilityTest', 'CameraLensPolicyTest', 'GmsFeatureQueryTest', 'CompanionControlTest', 'CompanionSettingsTest', 'DexTargetCacheTest', 'WalletPreviewBindingTest', 'LensHookLifecycleTest', 'SignalModelHookLifecycleTest', 'RoleReconciliationTest', 'HookInstallRollbackTest', 'HiddenCircleNoAssistantTest', 'FeatureQueryTest', 'ContextBindingCacheTest'].each { testName ->
     tasks.register("test${testName}", JavaExec) {
         dependsOn 'compileHookLifecycleTests'
         classpath = files(lifecycleTestClasses) + tasks.named('compileHookLifecycleTests').get().classpath
@@ -102,6 +102,7 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
     }
 }
 tasks.register('testHookLifecycle') {
+    dependsOn 'testCameraLensPolicyTest', 'testCameraLensEligibilityTest'
     dependsOn 'testGmsFeatureQueryTest'
     dependsOn 'testCompanionControlTest'
     dependsOn 'testCompanionSettingsTest'

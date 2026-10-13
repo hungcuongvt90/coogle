@@ -70,6 +70,7 @@ final class AppDexTargets implements AutoCloseable {
         List<Method> methods = switch (feature) {
             case FeaturePolicy.LENS -> findLens();
             case FeaturePolicy.WALLET -> findWallet();
+            case FeaturePolicy.CAMERA_LENS -> findCameraLens();
             default -> throw new IllegalArgumentException("Unsupported dynamic feature");
         };
         if (methods.isEmpty()) {
@@ -87,6 +88,10 @@ final class AppDexTargets implements AutoCloseable {
     }
 
     private static boolean valid(String feature, List<Method> methods) {
+        if (FeaturePolicy.CAMERA_LENS.equals(feature))
+            return !methods.isEmpty() && methods.size() <= 65 && methods.get(0).getReturnType() == boolean.class
+                    && List.of(methods.get(0).getParameterTypes()).equals(List.of(String.class))
+                    && !Modifier.isStatic(methods.get(0).getModifiers());
         if (methods.size() < 2 || methods.size() > 514) return false;
         if (FeaturePolicy.LENS.equals(feature)) {
             return LensBinding.isPair(methods.get(0), methods.get(1));
@@ -96,6 +101,21 @@ final class AppDexTargets implements AutoCloseable {
             catch (IllegalAccessException invalid) { return false; }
         }
         return false;
+    }
+
+    private List<Method> findCameraLens() throws ReflectiveOperationException {
+        var found = bridge.findMethod(FindMethod.create().matcher(MethodMatcher.create()
+                .returnType("boolean").paramTypes("java.lang.String")
+                .usingStrings(List.of("key_show_googlelens_icon", "com.oplus.camera.feature.google_lens"))));
+        if (found.size() != 1) return List.of();
+        List<Method> result = new ArrayList<>(List.of(found.get(0).getMethodInstance(loader)));
+        for (MethodData caller : found.get(0).getCallers()) {
+            if (!caller.isMethod() || Modifier.isAbstract(caller.getModifiers()) || Modifier.isNative(caller.getModifiers())) continue;
+            if (result.size() >= 65) return List.of();
+            Method method = caller.getMethodInstance(loader);
+            if (!result.contains(method)) result.add(method);
+        }
+        return result;
     }
 
     private List<Method> findLens() throws ReflectiveOperationException {
