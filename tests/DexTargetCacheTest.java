@@ -33,13 +33,21 @@ public final class DexTargetCacheTest {
             try (var targets = new AppDexTargets(DexTargetCacheTest.class.getClassLoader(), apk.toString(), dir.toString())) {
                 var methods = targets.resolve(FeaturePolicy.LENS);
                 if (!methods.equals(java.util.List.of(create, talk))) throw new AssertionError("Cached methods changed");
-                if (!targets.resolve(FeaturePolicy.WALLET).isEmpty()) throw new AssertionError("Negative cache ignored");
+                try { targets.resolve(FeaturePolicy.WALLET); throw new AssertionError("Retired wallet locator accepted cached targets"); }
+                catch (IllegalArgumentException expected) { /* Retired features never initialize DexKit. */ }
                 try { targets.resolve(FeaturePolicy.CAMERA_LENS); throw new AssertionError("Former camera miss suppressed native lookup"); }
                 catch (UnsatisfiedLinkError expected) { /* A new native binding requires its own cache key. */ }
             }
+            stored.setProperty(FeaturePolicy.CAMERA_LENS + ".native-v1", "");
+            try (var output = Files.newOutputStream(cache)) { stored.store(output, "native negative cache"); }
+            try (var targets = new AppDexTargets(DexTargetCacheTest.class.getClassLoader(), apk.toString(), dir.toString())) {
+                if (!targets.resolve(FeaturePolicy.CAMERA_LENS).isEmpty()) throw new AssertionError("Native negative cache ignored");
+            }
             Files.write(apk, new byte[]{1,2});
             try (var targets = new AppDexTargets(DexTargetCacheTest.class.getClassLoader(), apk.toString(), dir.toString())) {
-                try { targets.resolve(FeaturePolicy.WALLET); throw new AssertionError("APK update retained negative cache"); }
+                try { targets.resolve(FeaturePolicy.WALLET); throw new AssertionError("Retired wallet locator scanned APK"); }
+                catch (IllegalArgumentException expected) { /* No cached result must still reject Wallet. */ }
+                try { targets.resolve(FeaturePolicy.CAMERA_LENS); throw new AssertionError("APK update retained negative cache"); }
                 catch (UnsatisfiedLinkError expected) { /* Scanner was attempted; no native library in this test. */ }
             }
             System.out.println("PASS: locator update invalidates old misses; valid caches skip native scanning; APK update invalidates targets");

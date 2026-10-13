@@ -13,7 +13,7 @@ final class FeatureScopes {
             case FeaturePolicy.GOOGLE_ENTRY -> List.of("com.android.settings");
             case FeaturePolicy.GMS -> List.of("system");
             case FeaturePolicy.LENS -> List.of(GOOGLE, "com.oplus.camera");
-            case FeaturePolicy.WALLET -> List.of("system", "com.android.systemui", "com.google.android.apps.walletnfcrel");
+            case FeaturePolicy.WALLET -> List.of("system", "com.android.systemui");
             case FeaturePolicy.QUICK_ENTRIES -> List.of("com.android.systemui", "com.oplus.wallpapers");
             default -> List.of();
         };

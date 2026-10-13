@@ -31,9 +31,6 @@ public final class CoogleModule extends XposedModule {
         if ("com.oplus.camera".equals(packageName)) CameraLensHooks.install(hooks, param.getClassLoader(),
                 param.getApplicationInfo().sourceDir, param.getApplicationInfo().dataDir);
         if ("com.android.settings".equals(packageName)) SettingsHooks.installGoogleSettingsEntry(hooks, param.getClassLoader());
-        if ("com.google.android.apps.walletnfcrel".equals(packageName))
-            WalletPreviewHooks.install(hooks, param.getClassLoader(), param.getApplicationInfo().sourceDir,
-                    param.getApplicationInfo().dataDir);
         if ("com.android.systemui".equals(packageName) || "com.android.settings".equals(packageName)
                 || "com.android.launcher".equals(packageName)
                 || "com.oplus.wallpapers".equals(packageName)
