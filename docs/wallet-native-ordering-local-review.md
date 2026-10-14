@@ -41,3 +41,17 @@ outputs/Coogle-wallet-native-ordering-test.apk：1.3.3 / 133，2,834,750 字节�
 继续只读分析同一 Wallet APK：PaymentFocusedViewModel 的认证状态由 Google TapAndPay 服务事件提供；需要认证时，锁定设备分支调用 requestDismissKeyguard，未锁定分支调用生物识别并报告解锁。界面是否显示“身份认证”文字不能单独证明支付资格。国行 mIsSecureNfcEnabled=false，与此前国际版相同，排除这项开关的直接差异。当前仍需采集一次真实成功后 5 秒内再次双击的完整日志，判断重复认证来源。
 
 未推送 GitHub、修改首页、更新已发布 Release 或代用户重启设备。
+
+## 后续认证定位与当前约束
+
+用户确认两台同一账号、默认付款卡相同，但国际版 2 张付款卡、国行 8 张。均为多卡，不能归因于单卡自动选择。设备读取确认国际版 SDK 36 / Android 16、国行 SDK 37 / Android 17；Wallet 主 APK 仍为同一 SHA-256，GMS 版本不同。
+
+已核对两版 GMS 的近期认证实现：读取 BiometricManager.getLastAuthenticationTime(32783)，按原有有效期判断；不支持时使用原有记录及 Android Keystore 校验。两台 Wallet 角色均为 com.google.android.gms，默认 NFC 服务均为 TpHceService。系统 KeyguardManager/TrustManager 锁定查询未发现 Wallet 包专属豁免。
+
+临时只读诊断于 16:51:05.298 记录：Google 返回 recent=true，lastAuthAgeMs=3606，locked=true，cards=8，selected=7，suppliedCard=false，valuables=0，requestAuth=false；同一原生回调结束后 requestAuth=true。16:51:12.946 / 12.947 再次复现。新版 Wallet 原有 xht 回调在缺少当前预览 CardInfo/ValuableInfo 且设备锁定时，即使近期认证有效，也设置界面解锁请求。该行为不同于“系统没有记录指纹”，也不能归因于 8 张卡列表尚未加载。
+
+国际版本地持续采集确认 10:02:05.523 指纹成功、10:02:06.282 原生成功回调，10:02:09.864 再次启动 QUICKDRAW 后没有新的解锁请求；结果仍 showing=true、occluded=true、deviceLocked=1。日志中的 acek 关闭路径属于原有 acbs/acfc 界面；国行记录的 acax/xir/xht 属于另一界面实现。两套代码同在当前 APK 中。此前 TapAndPay 的 IDLE/AUTH_SUCCESS 警告来自 PollingFrameHandler，无付款设备场景下不能据此认定认证缓存失效。
+
+用户随后明确要求保留国行新版界面，不继续纠结界面差别。已撤回选择原有界面的试验代码、DexKit 查询、新增 Wallet 作用域和相关测试修改。该试验未安装到手机、未提交。临时只读诊断源码已移除，国行已重新安装 Coogle-wallet-native-ordering-test.apk，并关闭诊断钱包进程；当前仍为 system + SystemUI 作用域，不 Hook Wallet 认证代码。
+
+回退后 testHookLifecycle、assembleRelease、lintRelease 全部通过，记录在 build/wallet-new-ui-preserved-regression.log。保留原生启动与锁屏消息顺序修复；重复认证尚未修复，不宣称与国际版所有行为完全相同。继续工作的边界是保留新版界面和真实锁定/认证结果，不以伪造解锁状态或认证成功取得表面一致。
