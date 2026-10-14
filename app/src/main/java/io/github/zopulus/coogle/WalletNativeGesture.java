@@ -96,16 +96,28 @@ final class WalletNativeGesture implements WalletSettings.Gesture {
             throw new IOException("原生钱包手势配置未生效，已尝试恢复原设置。");
     }
     private static State parse(String output) throws IOException {
+        switch (output.trim()) {
+            case "COOGLE_WALLET_MODE_UNAVAILABLE": throw new IOException("无法读取系统原生双击模式，未更改手势设置。");
+            case "COOGLE_WALLET_MODE_UNSUPPORTED": throw new IOException("当前系统不支持原生双击钱包模式，未更改手势设置。");
+            case "COOGLE_WALLET_FLAGS_UNAVAILABLE": throw new IOException("无法读取原生钱包支持标志，未更改手势设置。");
+            case "COOGLE_WALLET_FLAGS_DISABLED": throw new IOException("当前系统未启用原生双击钱包支持，未更改手势设置。");
+        }
         String[] values = output.trim().split("\\R", -1);
         if (values.length != 2) throw new IOException("原生钱包手势配置读取失败。");
         try { return new State(values[0], values[1]); }
         catch (IllegalArgumentException invalid) { throw new IOException(invalid.getMessage(), invalid); }
     }
     static String supportCommand(int user) {
-        return "[ \"$(cmd overlay lookup --user " + user + " android android:integer/config_doubleTapPowerGestureMode)\" = 2 ] || exit 1; "
-                + "f=$(aflags list) || exit 1; "
-                + "printf '%s\\n' \"$f\" | grep -Eq '^android\\.service\\.quickaccesswallet\\.launch_wallet_option_on_power_double_tap[[:space:]]+enabled[[:space:]]' || exit 1; "
-                + "printf '%s\\n' \"$f\" | grep -Eq '^android\\.service\\.quickaccesswallet\\.launch_wallet_via_sysui_callbacks[[:space:]]+enabled[[:space:]]' || exit 1; ";
+        return "m=$(cmd overlay lookup --user " + user + " android android:integer/config_doubleTapPowerGestureMode) || " + unsupported("MODE_UNAVAILABLE")
+                + "[ \"$m\" = 2 ] || " + unsupported("MODE_UNSUPPORTED")
+                // Android's printf is external: never pass the full aflags list as one argument.
+                + "f=$(set -o pipefail; aflags list | grep -E '^android\\.service\\.quickaccesswallet\\.launch_wallet_(option_on_power_double_tap|via_sysui_callbacks)[[:space:]]') || " + unsupported("FLAGS_UNAVAILABLE")
+                + "printf '%s\\n' \"$f\" | grep -Eq '^android\\.service\\.quickaccesswallet\\.launch_wallet_option_on_power_double_tap[[:space:]]+enabled[[:space:]]' || " + unsupported("FLAGS_DISABLED")
+                + "printf '%s\\n' \"$f\" | grep -Eq '^android\\.service\\.quickaccesswallet\\.launch_wallet_via_sysui_callbacks[[:space:]]+enabled[[:space:]]' || " + unsupported("FLAGS_DISABLED");
+    }
+    private static String unsupported(String reason) {
+        // A capability failure is not a Root denial; report it through the native parser.
+        return "{ printf 'COOGLE_WALLET_" + reason + "\\n'; exit 0; }; ";
     }
     static String readCommand(int user) {
         return "settings --user " + user + " get secure " + ENABLED + " || exit 1; settings --user " + user + " get secure " + ACTION + " || exit 1";

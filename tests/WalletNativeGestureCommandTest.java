@@ -19,10 +19,20 @@ public final class WalletNativeGestureCommandTest {
         String select = WalletNativeGesture.supportCommand(10) + WalletNativeGesture.writeCommand(10, new WalletNativeGesture.State("1", "1"));
         Result selected = run(mocks + select);
         check(selected.status == 0 && selected.output.equals("1\n1"), "Native selection or readback failed: " + selected.output);
-        for (String unsupported : new String[]{"mode=0; ", "option=disabled; ", "callbacks=disabled; "}) {
+        String largeFlags = "original_aflags=$(declare -f aflags); eval \"${original_aflags/aflags ()/small_aflags ()}\"; "
+                + "aflags() { small_aflags \"$@\"; builtin printf '%180000s\\n' ''; }; "
+                // Android's external printf is limited by the kernel's per-argument size.
+                + "printf() { for arg in \"$@\"; do [ \"${#arg}\" -le 131072 ] || return 7; done; builtin printf \"$@\"; }; ";
+        Result large = run(mocks + largeFlags + select);
+        check(large.status == 0 && large.output.equals("1\n1"), "Large real-world flag list broke an authorized native setup: " + large.output);
+        for (String unsupported : new String[]{"mode=0; ", "option=disabled; ", "callbacks=disabled; ",
+                "cmd() { return 4; }; ", "aflags() { return 4; }; "}) {
             Result refused = run(mocks + unsupported + select);
-            check(refused.status != 0 && refused.output.isEmpty(), "Unsupported platform changed settings");
+            check(refused.status == 0 && refused.output.startsWith("COOGLE_WALLET_"), "Unsupported platform changed settings or was mislabeled as Root denial");
         }
+        Result brokenFlags = run(mocks + "aflags() { builtin printf 'android.service.quickaccesswallet.launch_wallet_option_on_power_double_tap enabled - default read-only system\\n'; "
+                + "builtin printf 'android.service.quickaccesswallet.launch_wallet_via_sysui_callbacks enabled - default read-only system\\n'; return 4; }; " + select);
+        check(brokenFlags.output.equals("COOGLE_WALLET_FLAGS_UNAVAILABLE"), "Failed flag command accepted partial output");
         Result failed = run(mocks + "settings() { return 1; }; " + select);
         check(failed.status != 0, "Failed native setting write accepted");
         Result restored = run(mocks + WalletNativeGesture.writeCommand(10, new WalletNativeGesture.State("0", "null")));

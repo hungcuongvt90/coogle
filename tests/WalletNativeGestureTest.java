@@ -67,6 +67,17 @@ public final class WalletNativeGestureTest {
         try { gesture.apply(true); throw new AssertionError("Unsupported native route accepted"); }
         catch (IOException expected) { }
         check(driver.current.equals(original) && driver.original == null, "Unsupported route changed settings");
+        for (String reason : new String[]{"MODE_UNAVAILABLE", "MODE_UNSUPPORTED", "FLAGS_UNAVAILABLE", "FLAGS_DISABLED"}) {
+            int[] writes = {0};
+            var unsupported = new WalletNativeGesture(10, command -> "COOGLE_WALLET_" + reason,
+                    new WalletNativeGesture.Backup() {
+                        public WalletNativeGesture.State read() { return null; }
+                        public boolean write(WalletNativeGesture.State value) { writes[0]++; return true; }
+                    });
+            try { unsupported.apply(true); throw new AssertionError("Unsupported route accepted"); }
+            catch (IOException expected) { check(!expected.getMessage().contains("Root"), "Capability failure mislabeled as Root denial"); }
+            check(writes[0] == 0, "Capability error changed backup");
+        }
         for (String invalid : new String[]{"1; reboot", "-1", "2147483648", "garbage"}) {
             try { new WalletNativeGesture.State("1", invalid); throw new AssertionError("Invalid action accepted"); }
             catch (IllegalArgumentException expected) { }
