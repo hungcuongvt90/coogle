@@ -29,7 +29,7 @@ public final class WalletPackageIsolationTest {
         enabled[0] = false;
         module.onPackageReady(param);
         check(FeatureScopes.required(FeaturePolicy.WALLET).equals(
-                java.util.List.of("system")), "Wallet requested app injection");
+                java.util.List.of("system", "com.android.systemui")), "Wallet requested app injection");
         System.out.println("PASS: enabled/disabled Wallet package initialization preserves original authentication");
     }
     private static void check(boolean value, String message) {

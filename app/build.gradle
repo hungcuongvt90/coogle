@@ -78,6 +78,8 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
     source files('../tests/WalletPackageIsolationTest.java')
     source files('../tests/WalletPaymentReadTest.java')
     source files('../tests/WalletNativeEntryHookTest.java')
+    source files('../tests/WalletDismissQueueTest.java')
+    source files('../tests/WalletKeyguardHookTest.java')
     source files('../tests/WalletNativeGestureTest.java')
     source files('../tests/WalletNativeGestureCommandTest.java')
     source files('../tests/SettingsUiStateTest.java')
@@ -102,7 +104,7 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
     targetCompatibility = '17'
     options.encoding = 'UTF-8'
 }
-['WalletNativeGestureCommandTest', 'WalletNativeGestureTest', 'WalletNativeEntryHookTest', 'WalletPaymentReadTest', 'WalletPackageIsolationTest', 'WalletSettingsTest', 'WalletPaymentCommandTest', 'ScopeRestartTest', 'SettingsUiStateTest', 'ScopeRequestsTest', 'CompanionUpgradeRegressionTest', 'CameraNativeLensTest', 'CameraLensEligibilityTest', 'GmsFeatureQueryTest', 'CompanionControlTest', 'CompanionSettingsTest', 'DexTargetCacheTest', 'LensHookLifecycleTest', 'SignalModelHookLifecycleTest', 'RoleReconciliationTest', 'HookInstallRollbackTest', 'HiddenCircleNoAssistantTest', 'FeatureQueryTest', 'ContextBindingCacheTest'].each { testName ->
+['WalletNativeGestureCommandTest', 'WalletNativeGestureTest', 'WalletNativeEntryHookTest', 'WalletDismissQueueTest', 'WalletKeyguardHookTest', 'WalletPaymentReadTest', 'WalletPackageIsolationTest', 'WalletSettingsTest', 'WalletPaymentCommandTest', 'ScopeRestartTest', 'SettingsUiStateTest', 'ScopeRequestsTest', 'CompanionUpgradeRegressionTest', 'CameraNativeLensTest', 'CameraLensEligibilityTest', 'GmsFeatureQueryTest', 'CompanionControlTest', 'CompanionSettingsTest', 'DexTargetCacheTest', 'LensHookLifecycleTest', 'SignalModelHookLifecycleTest', 'RoleReconciliationTest', 'HookInstallRollbackTest', 'HiddenCircleNoAssistantTest', 'FeatureQueryTest', 'ContextBindingCacheTest'].each { testName ->
     tasks.register("test${testName}", JavaExec) {
         dependsOn 'compileHookLifecycleTests'
         classpath = files(lifecycleTestClasses) + tasks.named('compileHookLifecycleTests').get().classpath
@@ -110,6 +112,8 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
     }
 }
 tasks.register('testHookLifecycle') {
+    dependsOn 'testWalletDismissQueueTest'
+    dependsOn 'testWalletKeyguardHookTest'
     dependsOn 'testWalletNativeGestureCommandTest'
     dependsOn 'testWalletNativeGestureTest'
     dependsOn 'testWalletNativeEntryHookTest'

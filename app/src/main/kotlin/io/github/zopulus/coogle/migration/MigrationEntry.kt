@@ -9,6 +9,7 @@ import io.github.libxposed.api.XposedModule
 object MigrationEntry {
     @JvmStatic fun attach(module: XposedModule) = ModernHookRuntime.attach(module)
     @JvmStatic fun hookPackage(packageName: String, loader: ClassLoader) {
+        if (packageName == "com.android.systemui") WalletKeyguardHooks.hook(loader)
         if (packageName == "com.oplus.wallpapers") {
             if (FeatureConfig.enabled(FeaturePolicy.QUICK_ENTRIES)) WallpaperQuickEntryHooks.install(loader)
             return
