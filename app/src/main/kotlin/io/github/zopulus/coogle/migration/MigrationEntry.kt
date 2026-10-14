@@ -22,7 +22,7 @@ object MigrationEntry {
         }
     }
     @JvmStatic fun hookSystem(loader: ClassLoader) {
-        if (FeatureConfig.enabled(FeaturePolicy.WALLET)) WalletPowerHooks.hook(loader)
+        WalletPowerHooks.hook(loader)
         GmsRegionRestrictionHooker.hook(loader)
         AssistantHooker.hook("system", loader)
         OkGoogleHotwordCompatibilityHooker.hookSystemServer(loader)
