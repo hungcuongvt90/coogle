@@ -19,3 +19,6 @@ Bundled Google enrollment components remain subject to their original licenses.
 Live translation feature exposure follows the native CPH2653 feature_contextualsearch.xml and Google App capability query observed on the reference device. No Google App code is bundled.
 Coogle 1.3.2 declares this capability through Android SystemConfig XML and checks the provider overlay with the device's idmap2 before mounts; no live-translation query hook remains.
 DexKit 2.3.0 by LuckyPray is an Apache-2.0 dependency.
+Header and control-dialog icons adapt Lucide package and rotate-cw (ISC).
+https://github.com/lucide-icons/lucide
+Their license is bundled in app/src/main/assets/lucide-icons-LICENSE.txt.

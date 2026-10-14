@@ -25,9 +25,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.HighlightOff
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.rounded.Extension
-import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.DashboardCustomize
@@ -62,6 +60,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -69,6 +68,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import io.github.zopulus.coogle.BuildConfig
+import io.github.zopulus.coogle.R
 import io.github.zopulus.coogle.FeaturePolicy
 
 @Composable
@@ -99,13 +99,13 @@ fun CoogleScreen(
                 navigationIcon = {
                     val enabled = state.connected == true && !state.busy && !state.restarting && !state.scopePending
                     IconButton(onClick = onInstall, enabled = enabled) {
-                        ControlIcon(Icons.Outlined.Extension, "安装附属模块", enabled)
+                        ControlIcon(R.drawable.ic_module_install, "安装附属模块", enabled)
                     }
                 },
                 actions = {
                     val enabled = state.connected == true && !state.busy && !state.restarting && !state.scopePending
                     IconButton(onClick = onRestart, enabled = enabled) {
-                        ControlIcon(Icons.Outlined.RestartAlt, "重启作用域", enabled)
+                        ControlIcon(R.drawable.ic_scope_restart, "重启作用域", enabled)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -196,8 +196,8 @@ fun CoogleScreen(
 }
 
 @Composable
-private fun ControlIcon(vector: ImageVector, description: String? = null, enabled: Boolean = true) {
-    Icon(vector, contentDescription = description, modifier = Modifier.size(24.dp),
+private fun ControlIcon(resource: Int, description: String? = null, enabled: Boolean = true) {
+    Icon(painterResource(resource), contentDescription = description, modifier = Modifier.size(24.dp),
         tint = MaterialTheme.colorScheme.secondary.copy(alpha = if (enabled) 1f else 0.38f))
 }
 
@@ -291,8 +291,8 @@ private fun CoogleDialog(state: CoogleState, onConfirm: () -> Unit, onDismiss: (
         onDismissRequest = onDismiss,
         shape = MaterialTheme.shapes.extraLarge,
         icon = {
-            if (state.dialog in setOf(DialogKind.INSTALL, DialogKind.INSTALLED)) ControlIcon(Icons.Outlined.Extension)
-            else if (state.dialog == DialogKind.RESTART) ControlIcon(Icons.Outlined.RestartAlt)
+            if (state.dialog in setOf(DialogKind.INSTALL, DialogKind.INSTALLED)) ControlIcon(R.drawable.ic_module_install)
+            else if (state.dialog == DialogKind.RESTART) ControlIcon(R.drawable.ic_scope_restart)
             else Icon(if (state.dialog == DialogKind.HIDE_ICON) Icons.Rounded.VisibilityOff else Icons.Rounded.Info, null)
         },
         title = { Text(title) },
