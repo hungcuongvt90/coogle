@@ -13,9 +13,11 @@ public final class WalletNativeGestureCommandTest {
                 + "printf 'android.service.quickaccesswallet.launch_wallet_via_sysui_callbacks %s - default read-only system\\n' \"$callbacks\"; }; "
                 + "settings() { [ \"$1\" = --user ] && [ \"$2\" = 10 ] && [ \"$4\" = secure ] || return 7; "
                 + "case \"$5\" in double_tap_power_button_gesture_enabled) "
-                + "case \"$3\" in get) printf '%s\\n' \"$enabled\";; put) enabled=$6;; delete) enabled=null;; esac;; "
+                + "case \"$3\" in get) printf '%s\\n' \"$enabled\";; put) enabled=$6;; delete) "
+                + "[ \"$enabled\" = null ] && rows=0 || rows=1; enabled=null; printf 'Deleted %s rows\\n' \"$rows\";; esac;; "
                 + "double_tap_power_button_gesture) "
-                + "case \"$3\" in get) printf '%s\\n' \"$action\";; put) action=$6;; delete) action=null;; esac;; *) return 8;; esac; }; ";
+                + "case \"$3\" in get) printf '%s\\n' \"$action\";; put) action=$6;; delete) "
+                + "[ \"$action\" = null ] && rows=0 || rows=1; action=null; printf 'Deleted %s rows\\n' \"$rows\";; esac;; *) return 8;; esac; }; ";
         String select = WalletNativeGesture.supportCommand(10) + WalletNativeGesture.writeCommand(10, new WalletNativeGesture.State("1", "1"));
         Result selected = run(mocks + select);
         check(selected.status == 0 && selected.output.equals("1\n1"), "Native selection or readback failed: " + selected.output);
@@ -37,6 +39,13 @@ public final class WalletNativeGestureCommandTest {
         check(failed.status != 0, "Failed native setting write accepted");
         Result restored = run(mocks + WalletNativeGesture.writeCommand(10, new WalletNativeGesture.State("0", "null")));
         check(restored.status == 0 && restored.output.equals("0\nnull"), "Absent native target was not restored");
+        Result removed = run(mocks + "enabled=1; action=1; " + WalletNativeGesture.writeCommand(10, new WalletNativeGesture.State("0", "null")));
+        check(removed.status == 0 && removed.output.equals("0\nnull"), "Deleted-row output corrupted disable readback: " + removed.output);
+        Result absent = run(mocks + "enabled=1; action=1; " + WalletNativeGesture.writeCommand(10, new WalletNativeGesture.State("null", "null")));
+        check(absent.status == 0 && absent.output.equals("null\nnull"), "Both absent original settings were not restored: " + absent.output);
+        Result deleteFailed = run(mocks + "settings() { [ \"$3\" != delete ] || { printf 'Delete failed\\n' >&2; return 7; }; }; "
+                + WalletNativeGesture.writeCommand(10, new WalletNativeGesture.State("0", "null")));
+        check(deleteFailed.status != 0 && deleteFailed.output.contains("Delete failed"), "Delete failure or stderr was hidden");
         String command = WalletNativeGesture.writeCommand(10, new WalletNativeGesture.State("1", "1"));
         check(command.indexOf("put secure double_tap_power_button_gesture 1") < command.indexOf("put secure double_tap_power_button_gesture_enabled 1"),
                 "Gesture enabled before Wallet was selected");

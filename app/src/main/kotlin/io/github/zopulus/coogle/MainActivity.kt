@@ -67,9 +67,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             CoogleTheme {
                 CoogleScreen(state, ::changeSetting, ::openAssistant, ::changeIconVisibility,
-                    { showDialog(DialogKind.STATUS) }, ::openRepository,
+                    { showDialog(DialogKind.STATUS); if (state.connected == true) checkCompanion() }, ::openRepository,
                     ::confirmDialog, ::dismissDialog,
-                    { showDialog(DialogKind.INSTALL) }, { showDialog(DialogKind.RESTART) })
+                    { showDialog(DialogKind.RESTART) })
             }
         }
     }
@@ -165,17 +165,17 @@ class MainActivity : ComponentActivity() {
                 result.onSuccess {
                     syncPreferences()
                     if (supportState != null) confirmCompanion(supportState)
-                }.onFailure { error(it.message ?: "配置保存失败") }
+                }.onFailure { error(it, "配置保存失败，请重试。") }
             }
         }
     }
 
-    private fun checkCompanion(force: Boolean = false) {
+    private fun checkCompanion() {
         val settings = preferences ?: return
         if (state.busy || state.companionChecking || state.scopePending) return
-        if (!force && companionCheckedThisResume) return
+        if (companionCheckedThisResume) return
         companionCheckedThisResume = true
-        state = state.copy(companionChecking = true, companionError = "")
+        state = state.copy(companionChecking = true)
         worker.execute {
             val result = runCatching {
                 CompanionState.valueOf(CompanionSettings.INSTANCE.refresh(settings))
@@ -187,8 +187,8 @@ class MainActivity : ComponentActivity() {
                     syncPreferences()
                     confirmCompanion(installed)
                 }.onFailure {
-                    val message = "${it.message ?: "无法检查附属模块"}。请确认 Coogle 的 Root 授权，或从模块状态重新检测。"
-                    state = state.copy(companionError = message)
+                    state = state.copy(companionError = failureMessage(it,
+                        "无法读取附属模块状态，请检查系统支持情况。"))
                 }
             }
         }
@@ -196,7 +196,8 @@ class MainActivity : ComponentActivity() {
 
     private fun installCompanion() {
         val settings = preferences ?: return
-        state = state.copy(busy = true, companionError = "", dialog = DialogKind.NONE)
+        if (state.busy || state.restarting || state.scopePending || state.companionChecking) return
+        state = state.beginCompanionInstall()
         worker.execute {
             val result = runCatching {
                 CompanionState.valueOf(CompanionSettings.INSTANCE.install(applicationContext, settings))
@@ -209,8 +210,11 @@ class MainActivity : ComponentActivity() {
                     confirmCompanion(installed)
                     showDialog(DialogKind.INSTALLED)
                 }.onFailure {
-                    state = state.copy(companionError = it.message ?: "附属模块安装失败")
-                    error(it.message ?: "附属模块安装失败")
+                    // Without root, the cached installation status cannot be reconfirmed.
+                    if (it is RootShell.Failure && (it.reason == RootShell.Reason.AUTHORIZATION ||
+                        it.reason == RootShell.Reason.UNAVAILABLE))
+                        state = state.copy(companionError = failureMessage(it, "无法读取附属模块状态。"))
+                    error(it, "附属模块安装失败，请检查 KernelSU 是否正常运行。")
                 }
             }
         }
@@ -234,7 +238,7 @@ class MainActivity : ComponentActivity() {
                 state = state.copy(restarting = false)
                 result.onSuccess {
                     Toast.makeText(this, "作用域已重启，请重新打开对应应用。", Toast.LENGTH_LONG).show()
-                }.onFailure { error(it.message ?: "无法重启作用域") }
+                }.onFailure { error(it, "无法重启作用域，请检查系统支持情况。") }
             }
         }
     }
@@ -261,13 +265,12 @@ class MainActivity : ComponentActivity() {
 
     private fun confirmDialog() {
         if (state.dialog == DialogKind.STATUS) {
-            checkCompanion(force = true)
+            installCompanion()
             return
         }
         val dialog = state.dialog
         dismissDialog()
         when (dialog) {
-            DialogKind.INSTALL -> installCompanion()
             DialogKind.RESTART -> restartScopes()
             DialogKind.HIDE_ICON -> setIconHidden(true)
             else -> Unit
@@ -277,6 +280,17 @@ class MainActivity : ComponentActivity() {
     private fun showDialog(kind: DialogKind) { state = state.copy(dialog = kind) }
     private fun dismissDialog() { state = state.copy(dialog = DialogKind.NONE) }
     private fun error(message: String) { state = state.copy(dialog = DialogKind.ERROR, dialogText = message) }
+    private fun error(failure: Throwable, fallback: String) {
+        state = state.copy(dialog = if (failure is RootShell.Failure &&
+            failure.reason == RootShell.Reason.AUTHORIZATION) DialogKind.ROOT_REQUIRED else DialogKind.ERROR,
+            dialogText = failureMessage(failure, fallback))
+    }
+    private fun failureMessage(failure: Throwable, fallback: String): String {
+        if (failure is RootShell.Failure) return failure.message ?: fallback
+        // Only our explicit, localized I/O errors are user-facing; platform exceptions may be English.
+        return if (failure is IOException && failure.message?.any { it in '\u4e00'..'\u9fff' } == true)
+            failure.message!! else fallback
+    }
     private fun openRepository() {
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/zopulus/coogle"))) }
             .onFailure { error("请使用浏览器打开 github.com/zopulus/coogle。") }

@@ -30,7 +30,7 @@ public final class ScopeRequestsTest {
         service.fail = true;
         requests.ensure(service, List.of("settings"), results::add);
         check(!requests.pending() && results.get(3) != null, "Service failure left request stuck");
-        check(FeatureScopes.required(FeaturePolicy.WALLET).equals(List.of("system", "com.android.systemui")), "Wallet must include native keyguard ordering without injecting Wallet");
+        check(FeatureScopes.required(FeaturePolicy.WALLET).equals(List.of("system", "com.android.systemui", "com.google.android.apps.walletnfcrel")), "Wallet preview scope missing");
         check(FeatureScopes.required(FeaturePolicy.LENS).equals(List.of("com.google.android.googlequicksearchbox", "com.oplus.camera")), "Lens and camera scope request separated");
         System.out.println("PASS: scope grants, partial approval, denial, explicit retry, disconnect and deduplication");
     }

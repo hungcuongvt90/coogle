@@ -27,6 +27,14 @@ public final class CoogleModule extends XposedModule {
     @Override public void onPackageReady(XposedModuleInterface.PackageReadyParam param) {
         String packageName = param.getPackageName();
         if (!SystemCompatibility.isColorOs17()) return;
+        if ("com.google.android.apps.walletnfcrel".equals(packageName)) {
+            if (FeatureConfig.enabled(FeaturePolicy.WALLET)) {
+                MigrationEntry.attach(this);
+                MigrationEntry.hookWalletPreview(param.getClassLoader(), param.getApplicationInfo().sourceDir,
+                        param.getApplicationInfo().dataDir);
+            }
+            return;
+        }
         if ("com.android.launcher".equals(packageName)) SearchBarHooks.install(hooks, param.getClassLoader());
         if ("com.oplus.camera".equals(packageName)) CameraLensHooks.install(hooks, param.getClassLoader(),
                 param.getApplicationInfo().sourceDir, param.getApplicationInfo().dataDir);

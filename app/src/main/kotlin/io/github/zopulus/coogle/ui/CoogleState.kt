@@ -11,7 +11,7 @@ enum class CompanionState(val summary: String) {
     PENDING("附属模块：已安装请重启设备")
 }
 
-enum class DialogKind { NONE, STATUS, INSTALL, INSTALLED, RESTART, HIDE_ICON, ERROR }
+enum class DialogKind { NONE, STATUS, INSTALLED, RESTART, HIDE_ICON, ERROR, ROOT_REQUIRED }
 
 data class CoogleState(
     val connected: Boolean? = null,
@@ -27,16 +27,14 @@ data class CoogleState(
     val dialog: DialogKind = DialogKind.NONE,
     val dialogText: String = "",
 ) {
+    fun beginCompanionInstall(): CoogleState = copy(busy = true, dialog = DialogKind.NONE)
+    val navigationDescription: String get() = if (companion == CompanionState.MISSING)
+        "补全设置中的导航方式，圈定即搜实时翻译功能需点击激活状态卡片安装附属模块" else "补全设置中的导航方式"
     val heyAvailable: Boolean get() = companion == CompanionState.READY || companion == CompanionState.PENDING
     val heyDescription: String get() = if (companion == CompanionState.UNKNOWN || companion == CompanionState.MISSING)
-        "需点击左上角安装附属模块" else "补全系统级 Voice Match 功能"
-    val companionSummary: String get() = when {
-        companionError.isNotEmpty() -> if (companion == CompanionState.UNKNOWN) "附属模块：检测失败"
-            else "${companion.summary}（检测失败）"
-        busy -> if (companion == CompanionState.UNKNOWN) "附属模块：正在安装…"
-            else "${companion.summary}（正在安装…）"
-        else -> companion.summary
-    }
+        "补全系统级 Voice Match 功能，需点击激活状态卡片安装附属模块" else "补全系统级 Voice Match 功能"
+    val companionSummary: String get() = if (companionError.isNotEmpty())
+        "检测失败，$companionError" else companion.summary
     companion object {
         val featureKeys = listOf(FeaturePolicy.HEY_GOOGLE, FeaturePolicy.GMS, FeaturePolicy.GOOGLE_ENTRY,
             FeaturePolicy.NAVIGATION, FeaturePolicy.SEARCH_BAR, FeaturePolicy.LENS,

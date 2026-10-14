@@ -29,19 +29,34 @@ public final class DexTargetCacheTest {
             stored.setProperty(FeaturePolicy.LENS, new DexMethod(create).serialize() + "\n" + new DexMethod(talk).serialize());
             stored.setProperty(FeaturePolicy.WALLET, "");
             stored.setProperty(FeaturePolicy.CAMERA_LENS, "");
+            stored.setProperty("wallet.preview-candidates-v1", "");
+            try (var output = Files.newOutputStream(cache)) { stored.store(output, "old wallet negative cache"); }
+            try (var targets = new AppDexTargets(DexTargetCacheTest.class.getClassLoader(), apk.toString(), dir.toString())) {
+                try { targets.resolve(WalletPreviewCandidates.CACHE_FEATURE); throw new AssertionError("Old Wallet miss suppressed the corrected locator"); }
+                catch (UnsatisfiedLinkError expected) { /* Updated locator must rescan the unchanged APK. */ }
+            }
+            stored.remove("wallet.preview-candidates-v1");
+            var walletState = WalletPreviewCandidatesTest.RenamedModel.class.getDeclaredMethod("renamedState");
+            var walletCallback = WalletPreviewCandidatesTest.RenamedCallback.class.getDeclaredMethod("renamedCallback", Object.class);
+            stored.setProperty(WalletPreviewCandidates.CACHE_FEATURE,
+                    new DexMethod(walletState).serialize() + "\n" + new DexMethod(walletCallback).serialize());
             try (var output = Files.newOutputStream(cache)) { stored.store(output, "fixture"); }
             try (var targets = new AppDexTargets(DexTargetCacheTest.class.getClassLoader(), apk.toString(), dir.toString())) {
                 var methods = targets.resolve(FeaturePolicy.LENS);
                 if (!methods.equals(java.util.List.of(create, talk))) throw new AssertionError("Cached methods changed");
+                if (!targets.resolve(WalletPreviewCandidates.CACHE_FEATURE).equals(java.util.List.of(walletState, walletCallback)))
+                    throw new AssertionError("Candidate cache did not skip native scanning");
                 try { targets.resolve(FeaturePolicy.WALLET); throw new AssertionError("Retired wallet locator accepted cached targets"); }
                 catch (IllegalArgumentException expected) { /* Retired features never initialize DexKit. */ }
                 try { targets.resolve(FeaturePolicy.CAMERA_LENS); throw new AssertionError("Former camera miss suppressed native lookup"); }
                 catch (UnsatisfiedLinkError expected) { /* A new native binding requires its own cache key. */ }
             }
             stored.setProperty(FeaturePolicy.CAMERA_LENS + ".native-v1", "");
+            stored.setProperty(WalletPreviewCandidates.CACHE_FEATURE, "");
             try (var output = Files.newOutputStream(cache)) { stored.store(output, "native negative cache"); }
             try (var targets = new AppDexTargets(DexTargetCacheTest.class.getClassLoader(), apk.toString(), dir.toString())) {
                 if (!targets.resolve(FeaturePolicy.CAMERA_LENS).isEmpty()) throw new AssertionError("Native negative cache ignored");
+                if (!targets.resolve(WalletPreviewCandidates.CACHE_FEATURE).isEmpty()) throw new AssertionError("Candidate negative cache ignored");
             }
             Files.write(apk, new byte[]{1,2});
             try (var targets = new AppDexTargets(DexTargetCacheTest.class.getClassLoader(), apk.toString(), dir.toString())) {
@@ -49,6 +64,8 @@ public final class DexTargetCacheTest {
                 catch (IllegalArgumentException expected) { /* No cached result must still reject Wallet. */ }
                 try { targets.resolve(FeaturePolicy.CAMERA_LENS); throw new AssertionError("APK update retained negative cache"); }
                 catch (UnsatisfiedLinkError expected) { /* Scanner was attempted; no native library in this test. */ }
+                try { targets.resolve(WalletPreviewCandidates.CACHE_FEATURE); throw new AssertionError("APK update retained candidate cache"); }
+                catch (UnsatisfiedLinkError expected) { /* Candidate discovery rescans after an APK update. */ }
             }
             System.out.println("PASS: locator update invalidates old misses; valid caches skip native scanning; APK update invalidates targets");
         } finally {

@@ -74,6 +74,9 @@ def hotwordTestClasses = layout.buildDirectory.dir('hotword-tests')
 
 def lifecycleTestClasses = layout.buildDirectory.dir('hook-lifecycle-tests')
 tasks.register('compileHookLifecycleTests', JavaCompile) {
+    source files('../tests/RootShellTest.java')
+    source files('../tests/WalletPreviewHookTest.java')
+    source files('../tests/WalletPreviewCandidatesTest.java')
     source files('../tests/ScopeRequestsTest.java')
     source files('../tests/WalletPackageIsolationTest.java')
     source files('../tests/WalletPaymentReadTest.java')
@@ -112,6 +115,9 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
     }
 }
 tasks.register('testHookLifecycle') {
+    dependsOn 'testRootShell'
+    dependsOn 'testWalletPreviewCandidates'
+    dependsOn 'testWalletPreviewHook'
     dependsOn 'testWalletDismissQueueTest'
     dependsOn 'testWalletKeyguardHookTest'
     dependsOn 'testWalletNativeGestureCommandTest'
@@ -128,6 +134,24 @@ tasks.register('testHookLifecycle') {
     dependsOn 'testCompanionControlTest'
     dependsOn 'testCompanionSettingsTest'
     dependsOn 'testDexTargetCacheTest', 'testLensHookLifecycleTest', 'testSignalModelHookLifecycleTest', 'testRoleReconciliationTest', 'testHookInstallRollbackTest', 'testHiddenCircleNoAssistantTest', 'testFeatureQueryTest', 'testContextBindingCacheTest'
+}
+
+tasks.register('testRootShell', JavaExec) {
+    dependsOn 'compileHookLifecycleTests'
+    classpath = files(lifecycleTestClasses) + tasks.named('compileHookLifecycleTests').get().classpath
+    mainClass = 'io.github.zopulus.coogle.RootShellTest'
+}
+
+tasks.register('testWalletPreviewHook', JavaExec) {
+    dependsOn 'compileHookLifecycleTests'
+    classpath = files(lifecycleTestClasses) + tasks.named('compileHookLifecycleTests').get().classpath
+    mainClass = 'WalletPreviewHookTest'
+}
+
+tasks.register('testWalletPreviewCandidates', JavaExec) {
+    dependsOn 'compileHookLifecycleTests'
+    classpath = files(lifecycleTestClasses) + tasks.named('compileHookLifecycleTests').get().classpath
+    mainClass = 'io.github.zopulus.coogle.WalletPreviewCandidatesTest'
 }
 tasks.register('compileHotwordUidTest', JavaCompile) {
     source files('../tests/HotwordUidTest.java') + fileTree('../tests/hotword-stubs') { include '**/*.java' }

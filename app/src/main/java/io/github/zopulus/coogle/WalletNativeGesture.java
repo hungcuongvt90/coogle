@@ -130,6 +130,9 @@ final class WalletNativeGesture implements WalletSettings.Gesture {
                 + " || exit 1; " + readCommand(user);
     }
     private static String settingCommand(int user, String key, String value) {
-        return "settings --user " + user + ("null".equals(value) ? " delete secure " + key : " put secure " + key + " " + value);
+        // settings delete prints a row count; the parser must receive only the final two get results.
+        // Keep stderr and the exit status so failed writes still trigger rollback.
+        return "settings --user " + user + ("null".equals(value) ? " delete secure " + key : " put secure " + key + " " + value)
+                + " >/dev/null";
     }
 }
