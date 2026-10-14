@@ -152,7 +152,7 @@ class MainActivity : ComponentActivity() {
                 if (key == FeaturePolicy.HEY_GOOGLE) {
                     supportState = CompanionState.valueOf(CompanionSettings.INSTANCE.save(settings, enabled))
                 } else if (key == FeaturePolicy.WALLET) {
-                    WalletSettings.save(enabled, settings.getBoolean(key, false), WalletPayment(applicationContext), WalletNativeGesture(applicationContext)) { value ->
+                    WalletSettings.save(enabled, settings.getBoolean(key, false), WalletNativeGesture(applicationContext)) { value ->
                         settings.edit().putBoolean(key, value).commit()
                     }
                 } else if (!settings.edit().putBoolean(key, enabled).commit()) {

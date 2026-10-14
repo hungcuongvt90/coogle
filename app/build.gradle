@@ -76,12 +76,11 @@ def lifecycleTestClasses = layout.buildDirectory.dir('hook-lifecycle-tests')
 tasks.register('compileHookLifecycleTests', JavaCompile) {
     source files('../tests/ScopeRequestsTest.java')
     source files('../tests/WalletPackageIsolationTest.java')
-    source files('../tests/WalletPaymentReadTest.java')
     source files('../tests/WalletNativeEntryHookTest.java')
     source files('../tests/WalletNativeGestureTest.java')
     source files('../tests/WalletNativeGestureCommandTest.java')
     source files('../tests/SettingsUiStateTest.java')
-    source files('../tests/WalletSettingsTest.java', '../tests/WalletPaymentCommandTest.java', '../tests/ScopeRestartTest.java')
+    source files('../tests/WalletSettingsTest.java', '../tests/ScopeRestartTest.java')
     source files('../tests/CompanionControlTest.java', '../tests/CompanionUpgradeRegressionTest.java', '../tests/CameraLensEligibilityTest.java', '../tests/CameraNativeLensTest.java')
     source files('../tests/CompanionSettingsTest.java')
     source files('../tests/GmsFeatureQueryTest.java')
@@ -102,7 +101,7 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
     targetCompatibility = '17'
     options.encoding = 'UTF-8'
 }
-['WalletNativeGestureCommandTest', 'WalletNativeGestureTest', 'WalletNativeEntryHookTest', 'WalletPaymentReadTest', 'WalletPackageIsolationTest', 'WalletSettingsTest', 'WalletPaymentCommandTest', 'ScopeRestartTest', 'SettingsUiStateTest', 'ScopeRequestsTest', 'CompanionUpgradeRegressionTest', 'CameraNativeLensTest', 'CameraLensEligibilityTest', 'GmsFeatureQueryTest', 'CompanionControlTest', 'CompanionSettingsTest', 'DexTargetCacheTest', 'LensHookLifecycleTest', 'SignalModelHookLifecycleTest', 'RoleReconciliationTest', 'HookInstallRollbackTest', 'HiddenCircleNoAssistantTest', 'FeatureQueryTest', 'ContextBindingCacheTest'].each { testName ->
+['WalletNativeGestureCommandTest', 'WalletNativeGestureTest', 'WalletNativeEntryHookTest', 'WalletPackageIsolationTest', 'WalletSettingsTest', 'ScopeRestartTest', 'SettingsUiStateTest', 'ScopeRequestsTest', 'CompanionUpgradeRegressionTest', 'CameraNativeLensTest', 'CameraLensEligibilityTest', 'GmsFeatureQueryTest', 'CompanionControlTest', 'CompanionSettingsTest', 'DexTargetCacheTest', 'LensHookLifecycleTest', 'SignalModelHookLifecycleTest', 'RoleReconciliationTest', 'HookInstallRollbackTest', 'HiddenCircleNoAssistantTest', 'FeatureQueryTest', 'ContextBindingCacheTest'].each { testName ->
     tasks.register("test${testName}", JavaExec) {
         dependsOn 'compileHookLifecycleTests'
         classpath = files(lifecycleTestClasses) + tasks.named('compileHookLifecycleTests').get().classpath
@@ -113,11 +112,10 @@ tasks.register('testHookLifecycle') {
     dependsOn 'testWalletNativeGestureCommandTest'
     dependsOn 'testWalletNativeGestureTest'
     dependsOn 'testWalletNativeEntryHookTest'
-    dependsOn 'testWalletPaymentReadTest'
     dependsOn 'testWalletPackageIsolationTest'
     dependsOn 'testScopeRequestsTest'
     dependsOn 'testSettingsUiStateTest'
-    dependsOn 'testWalletSettingsTest', 'testWalletPaymentCommandTest', 'testScopeRestartTest'
+    dependsOn 'testWalletSettingsTest', 'testScopeRestartTest'
     dependsOn 'testCompanionUpgradeRegressionTest', 'testCameraLensEligibilityTest'
     dependsOn 'testCameraNativeLensTest'
     dependsOn 'testGmsFeatureQueryTest'
