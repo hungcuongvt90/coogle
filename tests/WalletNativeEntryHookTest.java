@@ -3,6 +3,7 @@ package io.github.zopulus.coogle;
 import android.content.SharedPreferences;
 import com.android.server.GestureLauncherService;
 import com.android.server.policy.OplusWalletController;
+import com.android.server.policy.PhoneWindowManagerExtImpl;
 import io.github.libxposed.api.XposedInterface;
 import io.github.zopulus.coogle.migration.compat.ModernHookRuntime;
 import java.lang.reflect.*;
@@ -19,7 +20,9 @@ public final class WalletNativeEntryHookTest {
         Method method = OplusWalletController.class.getMethod("isQuickLaunchSupport");
         var module = ModernHookRuntime.INSTANCE.module;
         XposedInterface.Hooker hook = module.callbacks.get(method);
-        check(hook != null && module.callbacks.size() == 1, "Native entry guard missing or launch/authentication methods hooked");
+        Method gateMethod = PhoneWindowManagerExtImpl.class.getMethod("isCameraGestureEnabled");
+        var gate = module.callbacks.get(gateMethod);
+        check(hook != null && gate != null && module.callbacks.size() == 2, "Native entry gate missing or launch/authentication methods hooked");
         OplusWalletController controller = new OplusWalletController();
         GestureLauncherService.selected = true;
         check(invoke(hook, method, controller, true).equals(false), "Selected native Wallet retained duplicate vendor launch");
@@ -33,7 +36,38 @@ public final class WalletNativeEntryHookTest {
         enabled[0] = false;
         check(invoke(hook, method, controller, true).equals(true) && GestureLauncherService.queries == queried,
                 "Disabled module changed original behavior");
-        System.out.println("PASS: native selection, vendor-route isolation, current user and unchanged disabled behavior");
+        PhoneWindowManagerExtImpl policy = new PhoneWindowManagerExtImpl();
+        enabled[0] = true;
+        check(invoke(gate, gateMethod, policy, false).equals(true), "CN region gate still blocks selected native Wallet");
+        check(GestureLauncherService.queriedUser == 11, "Power gate used wallet-controller user instead of policy user");
+        GestureLauncherService.selected = false;
+        check(invoke(gate, gateMethod, policy, false).equals(false), "Power gate enabled an unselected native gesture");
+        queried = GestureLauncherService.queries;
+        GestureLauncherService.selected = true;
+        enabled[0] = false;
+        check(invoke(gate, gateMethod, policy, false).equals(false) && GestureLauncherService.queries == queried,
+                "Disabled feature changed region gate");
+        enabled[0] = true;
+        PhoneWindowManagerExtImpl.sSosPowerKeyDownCount = 3;
+        check(invoke(gate, gateMethod, policy, false).equals(false) && GestureLauncherService.queries == queried,
+                "Native Wallet bypassed three-press SOS restriction");
+        PhoneWindowManagerExtImpl.sSosPowerKeyDownCount = 5;
+        policy.mShutdownChordEnabled = true;
+        check(invoke(gate, gateMethod, policy, false).equals(false) && GestureLauncherService.queries == queried,
+                "An unrelated original rejection was overridden");
+        check(invoke(gate, gateMethod, policy, true).equals(true) && GestureLauncherService.queries == queried,
+                "Already enabled native gate was altered");
+        check(policy.mShutdownChordEnabled && PhoneWindowManagerExtImpl.sSosPowerKeyDownCount == 5,
+                "Power/SOS fields were changed");
+        policy.mShutdownChordEnabled = false;
+        policy.mContext = null;
+        check(invoke(gate, gateMethod, policy, false).equals(false), "Missing policy context opened native gate");
+        policy.mContext = new android.content.Context();
+        GestureLauncherService.fail = true;
+        check(invoke(gate, gateMethod, policy, false).equals(false), "Failed native query opened power gate");
+        check(invoke(hook, method, controller, true).equals(true), "Failed native query disabled original vendor route");
+        GestureLauncherService.fail = false;
+        System.out.println("PASS: native region gate, SOS restriction, vendor-route isolation, current users and disabled behavior");
     }
     private static Object invoke(XposedInterface.Hooker hook, Method method, Object owner, boolean original) throws Throwable {
         int[] proceeds = {0};
