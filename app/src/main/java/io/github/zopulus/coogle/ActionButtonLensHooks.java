@@ -79,7 +79,7 @@ final class ActionButtonLensHooks {
     }
 
     private void prepare(Context context) throws Exception {
-        if (ActionButtonLensLaunch.availableEntry(context) == null) return;
+        // Lens may be hidden before first unlock; only resources determine readiness here.
         Resources resources = context.getResources();
         colorId = resources.getIdentifier("ac_ocrscanner_middle_icon", "drawable", ActionButtonLensBinding.PACKAGE);
         tabId = resources.getIdentifier("ac_tab_icon_ocrscanner", "drawable", ActionButtonLensBinding.PACKAGE);

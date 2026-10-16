@@ -106,7 +106,47 @@ public final class ActionButtonLensTest {
                 (p, m, a) -> "action_button_lens".equals(a[0]));
         FeatureConfig.attach(prefs);
         check(FeatureConfig.enabled("action_button_lens") && !FeatureConfig.enabled(FeaturePolicy.LENS), "Shortcut depends on existing Lens switch");
+        verifyBootInitialization();
         System.out.println("PASS: uninstalled scanner, native user/hidden-app checks, exact short-press hint, Google destination and independent switch");
+    }
+
+    private static void verifyBootInitialization() throws Exception {
+        var constructor = ActionButtonLensHooks.class.getDeclaredConstructor();
+        constructor.setAccessible(true);
+        var prepare = ActionButtonLensHooks.class.getDeclaredMethod("prepare", Context.class);
+        prepare.setAccessible(true);
+        var enabled = ActionButtonLensHooks.class.getDeclaredMethod("enabled");
+        enabled.setAccessible(true);
+        var state = constructor.newInstance();
+        var context = new Context();
+        context.manager.lensEntryPresent = false; // First unlock has not exposed Lens yet.
+        prepare.invoke(state, context);
+        check((boolean) enabled.invoke(state), "Pre-unlock Lens visibility permanently blocked resource initialization");
+        check(context.manager.activityReads == 0, "Resource initialization queried the Lens entry");
+        var original = new Intent(ActionButtonLensBinding.ACTION);
+        check(ActionButtonLensLaunch.destination(original, context) == null, "Unavailable pre-unlock entry targeted");
+        context.manager.lensEntryPresent = true;
+        check((boolean) enabled.invoke(state) && ActionButtonLensLaunch.destination(original, context) != null,
+                "Unlock requires resource reinitialization or a gesture-process restart");
+
+        var incomplete = constructor.newInstance();
+        context.resources.missingIdentifiers = true;
+        prepare.invoke(incomplete, context);
+        check(!(boolean) enabled.invoke(incomplete), "Missing native icons accepted");
+        context.resources.missingIdentifiers = false;
+        context.manager.moduleResources.missingDrawable = true;
+        var missingArtwork = constructor.newInstance();
+        try {
+            prepare.invoke(missingArtwork, context);
+            throw new AssertionError("Missing module artwork accepted");
+        } catch (java.lang.reflect.InvocationTargetException expected) {
+            check(expected.getCause() instanceof android.content.res.Resources.NotFoundException,
+                    "Unexpected resource initialization failure");
+        }
+        check(!(boolean) enabled.invoke(missingArtwork), "Failed resources left feature ready");
+        FeatureConfig.attach(null);
+        check(!(boolean) enabled.invoke(state), "Prepared resources bypassed the disabled feature switch");
+        System.out.println("PASS: resources initialize before first unlock; next launch recovers without retry, missing resources and disabled switch remain guarded");
     }
     private static void check(boolean result, String message) { if (!result) throw new AssertionError(message); }
 }

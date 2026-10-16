@@ -96,7 +96,8 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
         fileTree('../tests/lifecycle-stubs') { include '**/*.java' } +
         fileTree('../tests/contextual-stubs') { include 'android/**/*.java' }
     classpath = files(layout.buildDirectory.dir('intermediates/built_in_kotlinc/release/compileReleaseKotlin/classes'),
-        layout.buildDirectory.dir('intermediates/javac/release/compileReleaseJavaWithJavac/classes')) +
+        layout.buildDirectory.dir('intermediates/javac/release/compileReleaseJavaWithJavac/classes'),
+        layout.buildDirectory.file('intermediates/compile_r_class_jar/release/generateReleaseRFile/R.jar')) +
         files(androidComponents.sdkComponents.bootClasspath) +
         files({ configurations.releaseRuntimeClasspath.findAll { it.name.startsWith('kotlin-stdlib-') && it.name.endsWith('.jar') } }) +
         files({ zipTree(configurations.releaseCompileClasspath.find { it.name == 'api-102.0.0.aar' })
