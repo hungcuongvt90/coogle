@@ -6,6 +6,7 @@ public class Context {
  public android.app.KeyguardManager keyguardManager = new android.app.KeyguardManager();
  public boolean failServiceQuery;
  public ContentResolver getContentResolver(){return new ContentResolver();}
+ public String getPackageName() { return "com.oplus.gesture"; }
  public android.content.pm.PackageManager getPackageManager(){return manager;}
  public android.content.res.Resources getResources(){return resources;}
  public <T> T getSystemService(Class<T> type) {

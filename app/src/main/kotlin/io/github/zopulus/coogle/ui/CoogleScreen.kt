@@ -36,7 +36,6 @@ import androidx.compose.material.icons.rounded.RecordVoiceOver
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SettingsSuggest
 import androidx.compose.material.icons.rounded.TouchApp
-import androidx.compose.material.icons.rounded.CenterFocusStrong
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -61,6 +60,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -69,6 +69,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import io.github.zopulus.coogle.BuildConfig
 import io.github.zopulus.coogle.FeaturePolicy
+import io.github.zopulus.coogle.R
 
 @Composable
 fun CoogleScreen(
@@ -159,21 +160,23 @@ fun CoogleScreen(
                 ToggleRow(1, 3, Icons.Rounded.Mic, "Hey Google", state.heyDescription,
                     checked = state.features[FeaturePolicy.HEY_GOOGLE], enabled = available && !state.busy && state.heyAvailable,
                     onChange = { onSetting(FeaturePolicy.HEY_GOOGLE, it) })
-                ToggleRow(2, 3, Icons.Rounded.CenterFocusStrong, "Google智能镜头", "补全Google智能镜头功能",
+                ToggleRow(2, 3, ImageVector.vectorResource(R.drawable.action_lens_color), "Google智能镜头", "补全Google智能镜头功能",
                     state.features[FeaturePolicy.LENS], available, { onSetting(FeaturePolicy.LENS, it) })
             }
             Group("系统设置") {
-                ToggleRow(0, 6, Icons.Rounded.TouchApp, "系统导航方式", state.navigationDescription,
+                ToggleRow(0, 7, Icons.Rounded.TouchApp, "系统导航方式", state.navigationDescription,
                     state.features[FeaturePolicy.NAVIGATION], available, { onSetting(FeaturePolicy.NAVIGATION, it) })
-                ToggleRow(1, 6, Icons.Rounded.Search, "Google搜索框", "在桌面底部显示 Google 搜索框",
+                ToggleRow(1, 7, Icons.Rounded.Search, "Google搜索框", "在桌面底部显示 Google 搜索框",
                     state.features[FeaturePolicy.SEARCH_BAR], available, { onSetting(FeaturePolicy.SEARCH_BAR, it) })
-                ToggleRow(2, 6, Icons.Rounded.AccountBalanceWallet, "Google钱包", "息屏时双击电源键呼出Google钱包",
+                ToggleRow(2, 7, ControlIcons.ActionButton, "快捷键智能镜头", "将快捷键中AI拍一拍替换为智能镜头",
+                    state.features[FeaturePolicy.ACTION_BUTTON_LENS], available, { onSetting(FeaturePolicy.ACTION_BUTTON_LENS, it) })
+                ToggleRow(3, 7, Icons.Rounded.AccountBalanceWallet, "Google钱包", "息屏时双击电源键呼出Google钱包",
                     state.features[FeaturePolicy.WALLET], available, { onSetting(FeaturePolicy.WALLET, it) })
-                ToggleRow(3, 6, Icons.Rounded.DashboardCustomize, "快捷入口与控制中心", "补全锁屏快捷入口与下拉控制中心的原生开关",
+                ToggleRow(4, 7, Icons.Rounded.DashboardCustomize, "快捷入口与控制中心", "补全锁屏快捷入口与下拉控制中心的原生开关",
                     state.features[FeaturePolicy.QUICK_ENTRIES], available, { onSetting(FeaturePolicy.QUICK_ENTRIES, it) })
-                ToggleRow(4, 6, Icons.Rounded.LockOpen, "移除 GMS 使用限制", "移除国行 GMS 限制标记",
+                ToggleRow(5, 7, Icons.Rounded.LockOpen, "移除 GMS 使用限制", "移除国行 GMS 限制标记",
                     state.features[FeaturePolicy.GMS], available, { onSetting(FeaturePolicy.GMS, it) })
-                ToggleRow(5, 6, Icons.Rounded.SettingsSuggest, "设置底部显示 Google", "强制显示设置底部Google",
+                ToggleRow(6, 7, Icons.Rounded.SettingsSuggest, "设置底部显示 Google", "强制显示设置底部Google",
                     state.features[FeaturePolicy.GOOGLE_ENTRY], available, { onSetting(FeaturePolicy.GOOGLE_ENTRY, it) })
             }
             Group("其他设置") {

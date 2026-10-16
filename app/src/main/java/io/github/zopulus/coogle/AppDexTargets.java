@@ -50,7 +50,8 @@ final class AppDexTargets implements AutoCloseable {
 
     List<Method> resolve(String feature) throws ReflectiveOperationException {
         if (!FeaturePolicy.LENS.equals(feature) && !FeaturePolicy.CAMERA_LENS.equals(feature)
-                && !WalletPreviewCandidates.CACHE_FEATURE.equals(feature))
+                && !WalletPreviewCandidates.CACHE_FEATURE.equals(feature)
+                && !ActionButtonLensBinding.CACHE_FEATURE.equals(feature))
             throw new IllegalArgumentException("Unsupported dynamic feature");
         // Native presenter descriptors must not reuse the former forced-menu cache.
         String cacheKey = FeaturePolicy.CAMERA_LENS.equals(feature) ? feature + ".native-v1" : feature;
@@ -79,6 +80,7 @@ final class AppDexTargets implements AutoCloseable {
             case FeaturePolicy.LENS -> findLens();
             case FeaturePolicy.CAMERA_LENS -> findCameraLens();
             case WalletPreviewCandidates.CACHE_FEATURE -> findWalletPreviewCandidates();
+            case ActionButtonLensBinding.CACHE_FEATURE -> findActionButtonLens();
             default -> throw new IllegalArgumentException("Unsupported dynamic feature");
         };
         if (methods.isEmpty()) {
@@ -96,6 +98,7 @@ final class AppDexTargets implements AutoCloseable {
     }
 
     private static boolean valid(String feature, List<Method> methods) {
+        if (ActionButtonLensBinding.CACHE_FEATURE.equals(feature)) return ActionButtonLensBinding.valid(methods);
         if (WalletPreviewCandidates.CACHE_FEATURE.equals(feature)) return WalletPreviewCandidates.valid(methods);
         if (FeaturePolicy.CAMERA_LENS.equals(feature))
             return CameraLensBinding.valid(methods);
@@ -104,6 +107,59 @@ final class AppDexTargets implements AutoCloseable {
             return LensBinding.isPair(methods.get(0), methods.get(1));
         }
         return false;
+    }
+
+    private List<Method> findActionButtonLens() throws ReflectiveOperationException {
+        var labels = bridge.findMethod(FindMethod.create().matcher(MethodMatcher.create()
+                .declaredClass("com.oplus.gesture.actionbuttonkey.ActionButtonSettingsActivity")
+                .returnType("java.lang.String").paramCount(0)
+                .usingStrings(List.of("getOcrScannerAppLabel: metaKey="))));
+        var launches = bridge.findMethod(FindMethod.create().matcher(MethodMatcher.create()
+                .returnType("void").paramCount(2)
+                .usingStrings(List.of("longPressStartApp currentScene = "))));
+        if (labels.size() != 1 || launches.size() != 1) return List.of();
+        var dispatch = bridge.findMethod(FindMethod.create().matcher(MethodMatcher.create()
+                .declaredClass(launches.get(0).getClassName()).returnType("void")
+                .paramTypes("android.content.Intent", "java.lang.String", "java.lang.String")));
+        if (dispatch.size() != 1) return List.of();
+        var installed = bridge.findMethod(FindMethod.create().matcher(MethodMatcher.create()
+                .returnType("boolean").paramTypes("java.lang.String", "int", "android.content.Context")
+                .usingStrings(List.of("isAppInstalled result="))));
+        if (installed.size() != 1) return List.of();
+        MethodData availability = null;
+        for (MethodData caller : installed.get(0).getCallers()) {
+            if (!caller.isMethod() || !caller.getClassName().equals(installed.get(0).getClassName())) continue;
+            Method method = caller.getMethodInstance(loader);
+            if (method.getReturnType() == boolean.class && Modifier.isStatic(method.getModifiers())
+                    && List.of(method.getParameterTypes()).equals(List.of(String.class, int.class, android.content.Context.class))) {
+                if (availability != null) return List.of();
+                availability = caller;
+            }
+        }
+        if (availability == null) return List.of();
+        var binders = bridge.findMethod(FindMethod.create().matcher(MethodMatcher.create()
+                .declaredClass(launches.get(0).getClassName()).returnType("void")
+                .paramTypes("android.content.Intent", "java.lang.String").usingStrings(List.of("setBinderInfo bindService"))));
+        var hints = bridge.findMethod(FindMethod.create().matcher(MethodMatcher.create()
+                .returnType("void").paramTypes("int", "java.lang.String", "java.lang.String", "java.lang.Object", "java.lang.String", "boolean")
+                .usingStrings(List.of("showSendlingAndSideAnim flag:"))));
+        if (binders.size() != 1 || hints.size() != 1) return List.of();
+        var factories = bridge.findMethod(FindMethod.create().matcher(MethodMatcher.create()
+                .declaredClass(hints.get(0).getClassName()).returnType(hints.get(0).getClassName()).paramTypes("android.content.Context")));
+        if (factories.size() != 1) return List.of();
+        List<Method> result = new ArrayList<>(List.of(labels.get(0).getMethodInstance(loader), dispatch.get(0).getMethodInstance(loader),
+                availability.getMethodInstance(loader), binders.get(0).getMethodInstance(loader), factories.get(0).getMethodInstance(loader),
+                hints.get(0).getMethodInstance(loader)));
+        Set<Method> callers = new LinkedHashSet<>();
+        for (MethodData target : List.of(labels.get(0), dispatch.get(0), availability, binders.get(0))) {
+            for (MethodData caller : target.getCallers()) {
+                if (caller.isMethod() && !Modifier.isAbstract(caller.getModifiers()) && !Modifier.isNative(caller.getModifiers()))
+                    callers.add(caller.getMethodInstance(loader));
+            }
+        }
+        if (callers.size() > 16) return List.of();
+        result.addAll(callers);
+        return result;
     }
 
     private List<Method> findCameraLens() throws ReflectiveOperationException {

@@ -6,6 +6,7 @@ import java.util.Map;
 public final class SettingsUiStateTest {
     public static void main(String[] args) {
         CoogleState initial = new CoogleState();
+        check(CoogleState.Companion.getFeatureKeys().contains(FeaturePolicy.ACTION_BUTTON_LENS), "Shortcut switch absent from UI state");
         for (CompanionState status : CompanionState.values()) {
             boolean installHint = state(status, false, "").getNavigationDescription().contains("安装附属模块");
             check(installHint == (status == CompanionState.MISSING), "Navigation installation hint disagrees with companion state: " + status);

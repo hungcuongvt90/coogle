@@ -22,3 +22,7 @@ DexKit 2.3.0 by LuckyPray is an Apache-2.0 dependency.
 Header and control-dialog icons adapt Lucide package and rotate-cw (ISC).
 https://github.com/lucide-icons/lucide
 Their license is bundled in app/src/main/assets/lucide-icons-LICENSE.txt.
+The action-button Lens icons adapt the Google app's inspected Lens vector artwork;
+Google Lens branding remains the property of Google.
+The in-app shortcut setting icon adapts ColorOS Settings magic_cube_ic artwork;
+ColorOS artwork remains the property of its respective owner.

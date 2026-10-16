@@ -4,7 +4,7 @@ package io.github.zopulus.coogle;
 public final class FeaturePolicy {
     public static final String NAVIGATION="navigation", GMS="gms",
             GOOGLE_ENTRY="google_entry", SEARCH_BAR="search_bar", HEY_GOOGLE="hey_google", LENS="lens",
-            WALLET="wallet", QUICK_ENTRIES="quick_entries";
+            WALLET="wallet", QUICK_ENTRIES="quick_entries", ACTION_BUTTON_LENS="action_button_lens";
     // Locator/cache identifier only; Camera Lens is enabled by the module's app scope.
     public static final String CAMERA_LENS="camera_lens";
     public static boolean defaultValue(String key) {

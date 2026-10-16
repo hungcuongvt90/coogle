@@ -31,7 +31,8 @@ public final class ScopeRequestsTest {
         requests.ensure(service, List.of("settings"), results::add);
         check(!requests.pending() && results.get(3) != null, "Service failure left request stuck");
         check(FeatureScopes.required(FeaturePolicy.WALLET).equals(List.of("system", "com.android.systemui", "com.google.android.apps.walletnfcrel")), "Wallet preview scope missing");
-        check(FeatureScopes.required(FeaturePolicy.LENS).equals(List.of("com.google.android.googlequicksearchbox", "com.oplus.camera")), "Lens and camera scope request separated");
+        check(FeatureScopes.required(FeaturePolicy.LENS).equals(List.of("com.google.android.googlequicksearchbox", "com.oplus.camera")), "Existing Lens switch requests shortcut scope");
+        check(FeatureScopes.required("action_button_lens").equals(List.of("com.google.android.googlequicksearchbox", "com.oplus.gesture")), "Shortcut Lens scope missing");
         System.out.println("PASS: scope grants, partial approval, denial, explicit retry, disconnect and deduplication");
     }
     static class Fake implements ScopeRequests.Service {
