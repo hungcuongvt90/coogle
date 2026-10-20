@@ -109,7 +109,7 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
     targetCompatibility = '17'
     options.encoding = 'UTF-8'
 }
-['ActionButtonLensTest', 'WalletNativeGestureCommandTest', 'WalletNativeGestureTest', 'WalletNativeEntryHookTest', 'WalletDismissQueueTest', 'WalletKeyguardHookTest', 'WalletPaymentReadTest', 'WalletPackageIsolationTest', 'WalletSettingsTest', 'WalletPaymentCommandTest', 'ScopeRestartTest', 'SettingsUiStateTest', 'ScopeRequestsTest', 'CompanionUpgradeRegressionTest', 'CameraNativeLensTest', 'CameraLensEligibilityTest', 'GmsFeatureQueryTest', 'CompanionControlTest', 'CompanionSettingsTest', 'DexTargetCacheTest', 'LensHookLifecycleTest', 'SignalModelHookLifecycleTest', 'RoleReconciliationTest', 'HookInstallRollbackTest', 'HiddenCircleNoAssistantTest', 'FeatureQueryTest', 'ContextBindingCacheTest'].each { testName ->
+['ActionButtonLensTest', 'WalletNativeGestureCommandTest', 'WalletNativeGestureTest', 'WalletNativeEntryHookTest', 'WalletDismissQueueTest', 'WalletKeyguardHookTest', 'WalletPaymentReadTest', 'WalletPackageIsolationTest', 'WalletSettingsTest', 'WalletPaymentCommandTest', 'ScopeRestartTest', 'SettingsUiStateTest', 'ScopeRequestsTest', 'CompanionUpgradeRegressionTest', 'CameraNativeLensTest', 'CameraLensEligibilityTest', 'GmsFeatureQueryTest', 'CompanionControlTest', 'CompanionSettingsTest', 'DexTargetCacheTest', 'LensBindingTest', 'LensHookLifecycleTest', 'SignalModelHookLifecycleTest', 'RoleReconciliationTest', 'HookInstallRollbackTest', 'HiddenCircleNoAssistantTest', 'FeatureQueryTest', 'ContextBindingCacheTest'].each { testName ->
     tasks.register("test${testName}", JavaExec) {
         dependsOn 'compileHookLifecycleTests'
         classpath = files(lifecycleTestClasses) + tasks.named('compileHookLifecycleTests').get().classpath
@@ -118,6 +118,7 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
 }
 tasks.register('testHookLifecycle') {
     dependsOn 'testActionButtonLensTest'
+    dependsOn 'testLensBindingTest'
     dependsOn 'testRootShell'
     dependsOn 'testWalletPreviewCandidates'
     dependsOn 'testWalletPreviewHook'

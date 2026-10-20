@@ -45,6 +45,7 @@ def main():
     parser.add_argument('--adb', default='adb')
     parser.add_argument('--serial', required=True)
     parser.add_argument('--verify-regression', action='store_true', help='Confirm the obsolete numeric matcher fails')
+    parser.add_argument('--apk', type=Path, action='append', default=[], help='Also verify an actual Google APK')
     args = parser.parse_args()
     java = Path(os.environ['JAVA_HOME']) / 'bin'
     sdk = Path(os.environ['ANDROID_HOME'])
@@ -77,8 +78,23 @@ def main():
 
     files = [local / 'libdexkit.so']
     account = ROOT / 'tests/lens-stubs/com/google/apps/tiktok/account/AccountId.java'
-    for name in ('old-event', 'new-event', 'ambiguous', 'wrong-shape', 'missing-talk'):
+    for name in ('old-event', 'new-event', 'new-layout', 'ambiguous', 'ambiguous-talk',
+                 'wrong-shape', 'wrong-talk-shape', 'unknown-talk-layout', 'missing-talk'):
         fixture = FIXTURE.replace('EVENT', '27390' if name == 'old-event' else '27507')
+        if name in ('new-layout', 'ambiguous-talk', 'wrong-talk-shape', 'unknown-talk-layout'):
+            fixture = fixture.replace('boolean one, boolean two, Object state',
+                                      'boolean one, boolean two, boolean three, boolean four, boolean five, boolean six, Object state')
+        if name == 'ambiguous-talk':
+            fixture += '''class DuplicateTalk {
+                private final Anchor anchor;
+                DuplicateTalk(Object a, Object b, Object c, boolean one, boolean two, Object state) { anchor = (Anchor)a; }
+                boolean eligible() { return anchor.gate(false); }
+                long mode() { return 1L; }
+            }'''
+        if name == 'wrong-talk-shape':
+            fixture = fixture.replace('boolean four', 'int four')
+        if name == 'unknown-talk-layout':
+            fixture = fixture.replace('boolean five, boolean six, ', '')
         if name == 'ambiguous':
             fixture += 'class Duplicate { Object diagnostic(Object a,Object b,Object c,Object d) { return String.format("Checked: %s",a); } }'
         if name == 'wrong-shape':
@@ -105,9 +121,14 @@ def main():
     try:
         for path in files:
             run(*adb, 'push', path, remote + '/' + path.name, capture_output=True)
-        run(*adb, 'shell', 'chmod 0444 ' + ' '.join(remote + '/' + p.name for p in files))
+        apk_paths = []
+        for index, apk in enumerate(args.apk):
+            path = remote + f'/google-{index}.apk'
+            run(*adb, 'push', apk, path, capture_output=True)
+            apk_paths.append(path)
+        run(*adb, 'shell', 'chmod 0444 ' + ' '.join([*(remote + '/' + p.name for p in files), *apk_paths]))
         def execute(name):
-            command = f'CLASSPATH={remote}/{name}.zip app_process -Xmx256m -Djava.library.path={remote} /system/bin io.github.zopulus.coogle.LensDexTest {remote}'
+            command = f'CLASSPATH={remote}/{name}.zip app_process -Xmx768m -Djava.library.path={remote} /system/bin io.github.zopulus.coogle.LensDexTest {remote} ' + ' '.join(apk_paths)
             return subprocess.run([*adb, 'shell', command], capture_output=True, text=True)
         good = execute('runner')
         print(good.stdout, end='')
@@ -119,7 +140,9 @@ def main():
                 raise RuntimeError('Obsolete matcher was not rejected: ' + bad.stdout + bad.stderr)
             print('PASS: obsolete numeric matcher rejected by new-event fixture')
     finally:
-        run(*adb, 'shell', 'rm -f ' + ' '.join(remote + '/' + p.name for p in files) + '; rmdir ' + remote)
+        run(*adb, 'shell', 'rm', '-f', *(remote + '/' + p.name for p in files),
+            *(remote + f'/google-{index}.apk' for index in range(len(args.apk))), remote + '/coogle_app_targets_v1.cache')
+        run(*adb, 'shell', 'rmdir', remote)
 
 
 if __name__ == '__main__':

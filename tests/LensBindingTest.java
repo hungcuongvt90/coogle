@@ -15,6 +15,29 @@ public final class LensBindingTest {
         long mode() { return 0; }
     }
     static class Wrong { boolean renamed() { return false; } }
+    static class UpdatedTalk {
+        UpdatedTalk(Object provider, Object caller, Object scope, boolean one, boolean two,
+                    boolean three, boolean four, boolean five, boolean six, Object state) {}
+        boolean renamed() { return false; }
+        long mode() { return 0; }
+    }
+    static class WrongTalkFlag {
+        WrongTalkFlag(Object provider, Object caller, Object scope, boolean one, boolean two,
+                      boolean three, int four, boolean five, boolean six, Object state) {}
+        boolean renamed() { return false; }
+        long mode() { return 0; }
+    }
+    static class UnknownTalkLayout {
+        UnknownTalkLayout(Object provider, Object caller, Object scope, boolean one, boolean two,
+                          boolean three, boolean four, Object state) {}
+        boolean renamed() { return false; }
+        long mode() { return 0; }
+    }
+    static class MissingMode {
+        MissingMode(Object provider, Object caller, Object scope, boolean one, boolean two,
+                    boolean three, boolean four, boolean five, boolean six, Object state) {}
+        boolean renamed() { return false; }
+    }
     static class DuplicateCreate {
         DuplicateCreate(AccountId account, Gate gate, boolean enabled, long mode) {}
         boolean renamed() { return false; }
@@ -32,6 +55,17 @@ public final class LensBindingTest {
         Method[] result = LensBinding.select(List.of(wrong, talk, create), Gate.class);
         check(result != null && result[0].equals(create) && result[1].equals(talk), "Renamed targets not selected");
         check(LensBinding.isPair(create, talk) && !LensBinding.isPair(talk, create), "Cached target order not validated");
+        Method updated = UpdatedTalk.class.getDeclaredMethod("renamed");
+        Method[] updatedPair = LensBinding.select(List.of(wrong, updated, create), Gate.class);
+        check(updatedPair != null && updatedPair[0].equals(create) && updatedPair[1].equals(updated),
+                "Google 17.68 Talk layout not selected");
+        check(LensBinding.isPair(create, updated) && !LensBinding.isPair(updated, create),
+                "Updated cached target order not validated");
+        check(LensBinding.select(List.of(create, talk, updated), Gate.class) == null,
+                "Ambiguous old/new Talk controllers accepted");
+        for (Class<?> invalid : List.of(WrongTalkFlag.class, UnknownTalkLayout.class, MissingMode.class))
+            check(LensBinding.select(List.of(create, invalid.getDeclaredMethod("renamed")), Gate.class) == null,
+                    "Unsupported Talk controller accepted: " + invalid.getSimpleName());
         check(LensBinding.select(List.of(create, talk, DuplicateCreate.class.getDeclaredMethod("renamed")), Gate.class) == null,
                 "Ambiguous create accepted");
         check(LensBinding.select(List.of(create, wrong), Gate.class) == null, "Missing talk accepted");
@@ -39,7 +73,7 @@ public final class LensBindingTest {
         Method combined = CombinedController.class.getDeclaredMethod("renamed");
         check(LensBinding.select(List.of(combined), Gate.class) == null,
                 "One method accepted as both Lens targets");
-        System.out.println("PASS: renamed Lens targets selected; ambiguous/missing/mismatched targets rejected");
+        System.out.println("PASS: old/new Lens layouts and cache order; ambiguous/missing/mismatched targets rejected");
     }
     static void check(boolean value, String message) { if (!value) throw new AssertionError(message); }
 }

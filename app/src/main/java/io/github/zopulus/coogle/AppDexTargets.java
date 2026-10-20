@@ -53,8 +53,12 @@ final class AppDexTargets implements AutoCloseable {
                 && !WalletPreviewCandidates.CACHE_FEATURE.equals(feature)
                 && !ActionButtonLensBinding.CACHE_FEATURE.equals(feature))
             throw new IllegalArgumentException("Unsupported dynamic feature");
-        // Native presenter descriptors must not reuse the former forced-menu cache.
-        String cacheKey = FeaturePolicy.CAMERA_LENS.equals(feature) ? feature + ".native-v1" : feature;
+        // Revised locators must not reuse old descriptors or deterministic misses.
+        String cacheKey = switch (feature) {
+            case FeaturePolicy.LENS -> feature + ".controllers-v2";
+            case FeaturePolicy.CAMERA_LENS -> feature + ".native-v1";
+            default -> feature;
+        };
         if (!cacheKey.equals(feature) && stored.remove(feature) != null) dirty = true;
         if (WalletPreviewCandidates.CACHE_FEATURE.equals(feature)
                 && stored.remove("wallet.preview-candidates-v1") != null) dirty = true;

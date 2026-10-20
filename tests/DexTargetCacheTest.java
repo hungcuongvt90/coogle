@@ -22,11 +22,18 @@ public final class DexTargetCacheTest {
                 catch (UnsatisfiedLinkError expected) { /* Cache was invalidated and a fresh scan was requested. */ }
             }
 
+            stale.setProperty("apk", "2:" + apk + ":" + apk.toFile().lastModified() + ":" + apk.toFile().length());
+            try (var output = Files.newOutputStream(cache)) { stale.store(output, "1.3.4 Lens layout miss"); }
+            try (var targets = new AppDexTargets(DexTargetCacheTest.class.getClassLoader(), apk.toString(), dir.toString())) {
+                try { targets.resolve(FeaturePolicy.LENS); throw new AssertionError("Google 17.68 layout miss survived the locator update"); }
+                catch (UnsatisfiedLinkError expected) { /* Same APK must be rescanned by the corrected layout matcher. */ }
+            }
+
             var create = LensBindingTest.RenamedCreate.class.getDeclaredMethod("renamed");
-            var talk = LensBindingTest.RenamedTalk.class.getDeclaredMethod("renamed");
+            var talk = LensBindingTest.UpdatedTalk.class.getDeclaredMethod("renamed");
             Properties stored = new Properties();
             stored.setProperty("apk", "2:" + apk + ":" + apk.toFile().lastModified() + ":" + apk.toFile().length());
-            stored.setProperty(FeaturePolicy.LENS, new DexMethod(create).serialize() + "\n" + new DexMethod(talk).serialize());
+            stored.setProperty(FeaturePolicy.LENS + ".controllers-v2", new DexMethod(create).serialize() + "\n" + new DexMethod(talk).serialize());
             stored.setProperty(FeaturePolicy.WALLET, "");
             stored.setProperty(FeaturePolicy.CAMERA_LENS, "");
             stored.setProperty("wallet.preview-candidates-v1", "");
@@ -52,10 +59,12 @@ public final class DexTargetCacheTest {
                 catch (UnsatisfiedLinkError expected) { /* A new native binding requires its own cache key. */ }
             }
             stored.setProperty(FeaturePolicy.CAMERA_LENS + ".native-v1", "");
+            stored.setProperty(FeaturePolicy.LENS + ".controllers-v2", "");
             stored.setProperty(WalletPreviewCandidates.CACHE_FEATURE, "");
             try (var output = Files.newOutputStream(cache)) { stored.store(output, "native negative cache"); }
             try (var targets = new AppDexTargets(DexTargetCacheTest.class.getClassLoader(), apk.toString(), dir.toString())) {
                 if (!targets.resolve(FeaturePolicy.CAMERA_LENS).isEmpty()) throw new AssertionError("Native negative cache ignored");
+                if (!targets.resolve(FeaturePolicy.LENS).isEmpty()) throw new AssertionError("Current Lens negative cache ignored");
                 if (!targets.resolve(WalletPreviewCandidates.CACHE_FEATURE).isEmpty()) throw new AssertionError("Candidate negative cache ignored");
             }
             Files.write(apk, new byte[]{1,2});
@@ -64,6 +73,8 @@ public final class DexTargetCacheTest {
                 catch (IllegalArgumentException expected) { /* No cached result must still reject Wallet. */ }
                 try { targets.resolve(FeaturePolicy.CAMERA_LENS); throw new AssertionError("APK update retained negative cache"); }
                 catch (UnsatisfiedLinkError expected) { /* Scanner was attempted; no native library in this test. */ }
+                try { targets.resolve(FeaturePolicy.LENS); throw new AssertionError("APK update retained Lens cache"); }
+                catch (UnsatisfiedLinkError expected) { /* Lens discovery rescans after an APK update. */ }
                 try { targets.resolve(WalletPreviewCandidates.CACHE_FEATURE); throw new AssertionError("APK update retained candidate cache"); }
                 catch (UnsatisfiedLinkError expected) { /* Candidate discovery rescans after an APK update. */ }
             }
