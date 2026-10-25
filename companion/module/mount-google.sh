@@ -9,7 +9,12 @@ prepare_google_mount() {
        [ ! -f "$backend/disable" ] && [ ! -f "$backend/remove" ] &&
        [ ! -f /data/adb/nomount/disable ]; then
         rm -f "$google_dir/.replace"
-    else
+    elif [ -d /system/priv-app/GoogleQuickSearchBox ]; then
+        # .replace only replaces a firmware-shipped directory; ColorOS 16 CN
+        # firmware has none, and mounters that cannot create the directory
+        # abort the whole module mount when it is present.
         : > "$google_dir/.replace"
+    else
+        rm -f "$google_dir/.replace"
     fi
 }

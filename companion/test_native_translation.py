@@ -70,7 +70,7 @@ class NativeTranslationTest(unittest.TestCase):
                 (work/'status.sh').write_bytes((mocks+script).encode())
                 result = subprocess.run([BASH, str(work/'status.sh')], check=True,
                                         capture_output=True, text=True, encoding='utf-8')
-                self.assertEqual('✅实时翻译配置已生效' in result.stdout, ready)
+                self.assertEqual('✅Live translation configuration active' in result.stdout, ready)
 
 
 if __name__ == '__main__':

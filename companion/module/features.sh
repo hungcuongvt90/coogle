@@ -1,5 +1,7 @@
 #!/system/bin/sh
 # Hey Google is mirrored from the APK switch; Google/translation support stays on.
+# Software hotword detection is used; the DSP audio patch is intentionally removed
+# because it can deadlock OPLUS's location HAL on affected ColorOS firmware.
 # Configuration is parsed as data, never sourced as root shell code.
 load_features() {
     hey=0
@@ -22,7 +24,7 @@ select_payload() {
     if [ "$enabled" = 1 ]; then source=$parked; target=$active
     else source=$active; target=$parked; fi
     [ -e "$source" ] || return 0
-    [ ! -e "$target" ] || { echo "组件路径冲突：$relative" >&2; return 1; }
+    [ ! -e "$target" ] || { echo "Component path conflict: $relative" >&2; return 1; }
     mkdir -p "${target%/*}" && mv "$source" "$target" || return 1
     changed=1
 }
@@ -32,8 +34,7 @@ apply_features() {
     for relative in system/product/priv-app/CoogleEnrollmentXGoogle \
         system/product/priv-app/CoogleEnrollmentYGoogle \
         system/framework/com.android.hotwordenrollment.common.util.jar \
-        system/etc/sysconfig/coogle-hotword-library.xml \
-        system/odm/etc/resourcemanager.xml; do
+        system/etc/sysconfig/coogle-hotword-library.xml; do
         select_payload "$hey" "$relative" || return 1
     done
     select_payload 1 system/product/overlay/CoogleContextualSearch || return 1

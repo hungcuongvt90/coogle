@@ -18,14 +18,14 @@ final class WalletSettings {
         try {
             if (enabled && !payment.isGoogleDefault()) {
                 undo = payment.selectGoogle();
-                if (!payment.isGoogleDefault()) throw new IOException("默认付款应用设置未生效，请检查 Google 钱包与系统 NFC 设置。");
+                if (!payment.isGoogleDefault()) throw new IOException("The default payment app setting did not take effect. Check Google Wallet and the system NFC settings.");
             }
             gestureUndo = gesture.apply(enabled);
             committing = true;
-            if (!save.commit(enabled)) throw new IOException("配置未保存，请检查 LSPosed 连接。");
+            if (!save.commit(enabled)) throw new IOException("Settings were not saved. Check the LSPosed connection.");
         } catch (Exception failure) {
             if (committing) {
-                try { if (!save.commit(previous)) throw new IOException("无法恢复钱包开关配置。"); }
+                try { if (!save.commit(previous)) throw new IOException("Unable to restore the Wallet switch setting."); }
                 catch (Exception rollback) { if (rollback != failure) failure.addSuppressed(rollback); }
             }
             if (gestureUndo != null) {

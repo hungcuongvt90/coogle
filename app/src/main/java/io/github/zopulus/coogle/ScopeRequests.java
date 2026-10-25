@@ -25,7 +25,7 @@ final class ScopeRequests {
             service.request(missing, error -> complete(token, service, required, error, done));
         } catch (RuntimeException failure) {
             pending = false;
-            done.accept("无法请求作用域，请检查 LSPosed 连接并手动勾选对应应用。");
+            done.accept("Unable to request scopes. Check the LSPosed connection and select the required applications manually.");
         }
     }
 
@@ -36,9 +36,9 @@ final class ScopeRequests {
         if (error == null) {
             try {
                 if (!service.scope().containsAll(required))
-                    error = "所需作用域未全部批准，请在 LSPosed 中勾选对应应用后重试。";
+                    error = "Not all required scopes were approved. Select the required applications in LSPosed and try again.";
             } catch (RuntimeException failure) {
-                error = "无法确认作用域，请检查 LSPosed 连接后重试。";
+                error = "Unable to verify scopes. Check the LSPosed connection and try again.";
             }
         }
         done.accept(error);

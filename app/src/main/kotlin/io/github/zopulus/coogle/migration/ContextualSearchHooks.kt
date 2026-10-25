@@ -125,11 +125,13 @@ internal object ContextualSearchHooks {
             val binder = api.getService.invoke(null, "contextual_search") as? IBinder ?: return@runCatching false
             val service = api.asInterface.invoke(null, binder)
                 ?: return@runCatching false
-            // A null ContextualSearchConfig selects the framework's DEFAULT_CONFIG.
-            api.start.invoke(service, 1, null)
+            // A null ContextualSearchConfig selects the framework's DEFAULT_CONFIG on 17;
+            // 16 has no config class and takes only the entrypoint.
+            if (api.start.parameterCount == 2) api.start.invoke(service, 1, null)
+            else api.start.invoke(service, 1)
             true
         }.onFailure {
-            log("Failed to trigger Circle to Search through the ColorOS 17 API", it)
+            log("Failed to trigger Circle to Search through the supported ColorOS API", it)
         }.also {
             Binder.restoreCallingIdentity(token)
         }.getOrDefault(false)
@@ -138,9 +140,15 @@ internal object ContextualSearchHooks {
         val getService = Class.forName("android.os.ServiceManager").getMethod("getService", String::class.java)
         val asInterface = Class.forName("android.app.contextualsearch.IContextualSearchManager\$Stub")
             .getMethod("asInterface", IBinder::class.java)
-        val start = Class.forName("android.app.contextualsearch.IContextualSearchManager")
-            .getMethod("startContextualSearch", Int::class.javaPrimitiveType,
-                Class.forName("android.app.contextualsearch.ContextualSearchConfig"))
+        /** 17 passes a ContextualSearchConfig; 16 only exposes the entrypoint overload. */
+        val start: java.lang.reflect.Method = runCatching {
+            Class.forName("android.app.contextualsearch.IContextualSearchManager")
+                .getMethod("startContextualSearch", Int::class.javaPrimitiveType,
+                    Class.forName("android.app.contextualsearch.ContextualSearchConfig"))
+        }.getOrElse {
+            Class.forName("android.app.contextualsearch.IContextualSearchManager")
+                .getMethod("startContextualSearch", Int::class.javaPrimitiveType)
+        }
     }
     // A failed lazy initialization remains retryable when framework classes become available.
     private val contextualSearchApi by lazy { ContextualSearchApi() }

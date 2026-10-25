@@ -1,6 +1,7 @@
 package io.github.zopulus.coogle;
 
 import android.content.Context;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import static io.github.zopulus.coogle.HookInstaller.target;
@@ -11,7 +12,6 @@ final class SearchBarHooks {
         int firstHandle = hooks.mark();
         try {
             Class<?> feature=target(loader,"com.android.common.config.FeatureOption");
-            Method query=booleanMethod(feature,"getHasQsbAtBottomFeature");
             Method breeno=booleanMethod(feature,"getSIsSupportBreenoEntry");
             Method search=booleanMethod(feature,"getSIsSupportSearchEntry");
             Method init=feature.getDeclaredMethod("initFeature",Context.class);
@@ -19,13 +19,29 @@ final class SearchBarHooks {
             if (export.getType()!=boolean.class || !Modifier.isStatic(export.getModifiers())) {
                 throw new NoSuchFieldException("Launcher export feature signature changed");
             }
-            hooks.install(query,chain -> FeatureConfig.enabled(FeaturePolicy.SEARCH_BAR) ? true : chain.proceed());
-            // QSB needs the export bottom-search implementation, but the independent
-            // page-indicator button must retain its native Breeno action and settings.
-            hooks.install(breeno,chain ->
-                    FeatureConfig.enabled(FeaturePolicy.SEARCH_BAR) ? true : chain.proceed());
-            hooks.install(search,chain ->
-                    FeatureConfig.enabled(FeaturePolicy.SEARCH_BAR) ? false : chain.proceed());
+            Method query;
+            try {
+                query = booleanMethod(feature, "getHasQsbAtBottomFeature");
+            } catch (NoSuchMethodException missing) {
+                query = null;
+            }
+            if (query != null) {
+                // 17: the bottom QSB and the export bottom-search implementation are separate
+                // gates; the independent page-indicator button keeps its native Breeno action.
+                hooks.install(query,chain -> FeatureConfig.enabled(FeaturePolicy.SEARCH_BAR) ? true : chain.proceed());
+                hooks.install(breeno,chain ->
+                        FeatureConfig.enabled(FeaturePolicy.SEARCH_BAR) ? true : chain.proceed());
+                hooks.install(search,chain ->
+                        FeatureConfig.enabled(FeaturePolicy.SEARCH_BAR) ? false : chain.proceed());
+            } else {
+                // 16 moved the bottom bar into the IndicatorEntry state machine: BREENO wins
+                // whenever its entry is supported, so the Google search bar requires the
+                // Breeno entry to be unsupported and the search entry supported.
+                hooks.install(breeno,chain ->
+                        FeatureConfig.enabled(FeaturePolicy.SEARCH_BAR) ? false : chain.proceed());
+                hooks.install(search,chain ->
+                        FeatureConfig.enabled(FeaturePolicy.SEARCH_BAR) ? true : chain.proceed());
+            }
             hooks.install(init,chain -> {
                 Object result=chain.proceed();
                 if (FeatureConfig.enabled(FeaturePolicy.SEARCH_BAR)) export.setBoolean(null,true);

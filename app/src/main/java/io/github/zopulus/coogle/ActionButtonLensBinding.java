@@ -10,10 +10,14 @@ import java.util.List;
 /** Only the scanner destination changes; key dispatch and SpruceLauncher remain native. */
 final class ActionButtonLensBinding {
     static final String CACHE_FEATURE = "action-button.lens-v4";
+    /** 16 replaced the scanner scene with a camera keymagic launch; only the destination swaps. */
+    static final String CACHE_FEATURE_16 = "action-button.lens16-v1";
     static final String PACKAGE = "com.oplus.gesture";
     static final String SCANNER = "com.coloros.ocrscanner";
     static final String SCENE = "ocrscanner";
     static final String ACTION = "coloros.ocrscanner.intent.action.OSEE";
+    static final String CAMERA = "com.oplus.camera";
+    static final String KEYMAGIC = "com.oplus.camera.feature.keymagic.KeyMagicService";
     final Method label, launch, availability, shortPress;
     private final Method hintFactory, hint;
     private final Field context;
@@ -22,15 +26,20 @@ final class ActionButtonLensBinding {
         if (!valid(targets)) throw new NoSuchMethodException("Action button Lens binding incompatible");
         label = targets.get(0); launch = targets.get(1); availability = targets.get(2);
         shortPress = targets.get(3); hintFactory = targets.get(4); hint = targets.get(5);
+        context = uniqueContextField(launch.getDeclaringClass());
+        context.setAccessible(true);
+    }
+
+    /** The single instance Context field of the dispatch class carries the launch context. */
+    static Field uniqueContextField(Class<?> type) throws ReflectiveOperationException {
         Field found = null;
-        for (Field field : launch.getDeclaringClass().getDeclaredFields()) {
+        for (Field field : type.getDeclaredFields()) {
             if (field.getType() != Context.class || Modifier.isStatic(field.getModifiers())) continue;
             if (found != null) throw new NoSuchFieldException("Ambiguous action button context");
             found = field;
         }
         if (found == null) throw new NoSuchFieldException("Action button context missing");
-        context = found;
-        context.setAccessible(true);
+        return found;
     }
 
     static boolean valid(List<Method> targets) {
@@ -57,8 +66,8 @@ final class ActionButtonLensBinding {
     Context context(Object owner) throws IllegalAccessException { return (Context) context.get(owner); }
 
     void showHint(Context context, int icon) throws ReflectiveOperationException {
-        hint.invoke(hintFactory.invoke(null, context), 3, "io.github.zopulus.coogle", "长按使用智能镜头",
-                Integer.valueOf(icon), "长按使用智能镜头", false);
+        hint.invoke(hintFactory.invoke(null, context), 3, "io.github.zopulus.coogle", "Long-press to use Google Lens",
+                Integer.valueOf(icon), "Long-press to use Google Lens", false);
     }
 
     static boolean matchesShortPress(Intent intent, String scene) {
@@ -69,5 +78,21 @@ final class ActionButtonLensBinding {
 
     static boolean matches(String scene, String owner, String action) {
         return SCENE.equals(scene) && SCANNER.equals(owner) && ACTION.equals(action);
+    }
+
+    /** 16 dispatches the camera scene through the generic keymagic service component. */
+    static boolean matchesKeyMagic(Intent intent) {
+        return intent != null && intent.getComponent() != null
+                && CAMERA.equals(intent.getComponent().getPackageName())
+                && KEYMAGIC.equals(intent.getComponent().getClassName());
+    }
+
+    /** 16 binds only the camera quick-launch dispatcher; no hint, label or icon hooks exist. */
+    static boolean valid16(List<Method> targets) {
+        if (targets.size() != 1) return false;
+        Method launcher = targets.get(0);
+        return launcher.getReturnType() == void.class && !Modifier.isStatic(launcher.getModifiers())
+                && List.of(launcher.getParameterTypes()).equals(List.of(String.class, Intent.class, String.class))
+                && launcher.getDeclaringClass() != null;
     }
 }

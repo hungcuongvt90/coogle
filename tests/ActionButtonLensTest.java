@@ -71,7 +71,7 @@ public final class ActionButtonLensTest {
         check(!ActionButtonLensBinding.matchesShortPress(new Intent(), "ocrscanner"), "Unspecified service replaced");
         check(!ActionButtonLensBinding.matchesShortPress(null, "ocrscanner"), "Null service replaced");
         binding.showHint(host.nativeContext, 42);
-        check("长按使用智能镜头".equals(NativeHint.instance.text) && Integer.valueOf(42).equals(NativeHint.instance.icon), "Native Lens hint lost");
+        check("Long-press to use Google Lens".equals(NativeHint.instance.text) && Integer.valueOf(42).equals(NativeHint.instance.icon), "Native Lens hint lost");
         check(ActionButtonLensBinding.matches("ocrscanner", "com.coloros.ocrscanner", "coloros.ocrscanner.intent.action.OSEE"), "Scanner destination missed");
         check(!ActionButtonLensBinding.matches("camera", "com.coloros.ocrscanner", "coloros.ocrscanner.intent.action.OSEE"), "Other scene redirected");
         check(!ActionButtonLensBinding.matches("ocrscanner", "other.app", "coloros.ocrscanner.intent.action.OSEE"), "Other owner redirected");

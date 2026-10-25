@@ -19,7 +19,6 @@ class FeaturesTest(unittest.TestCase):
                      'system/product/priv-app/CoogleEnrollmentYGoogle/enroll.apk',
                      'system/framework/com.android.hotwordenrollment.common.util.jar',
                      'system/etc/sysconfig/coogle-hotword-library.xml',
-                     'system/odm/etc/resourcemanager.xml',
                      'system/product/overlay/CoogleContextualSearch/overlay.apk']
             for name in paths:
                 path = work / name
@@ -46,7 +45,7 @@ class FeaturesTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             work = Path(directory)
             config = work/'features.conf'
-            config.write_bytes(b'google=0\nhey=0\ntranslate=1\n$(touch injected)\n')
+            config.write_bytes(b'google=0\nhey=0\ntranslate=1\ndsp=1\n$(touch injected)\n')
             result = subprocess.run([BASH, '-c',
                 f'cd "{unix(work)}"; . "{unix(ROOT / "module/features.sh")}"; '
                 'load_features features.conf; save_features saved.conf; cat saved.conf'],
@@ -76,8 +75,8 @@ class FeaturesTest(unittest.TestCase):
             mocks = f'query() {{ touch "{unix(work)}/queried"; }}; dumpsys() {{ case "$*" in *voiceinteraction*) query ;; esac; }}; pm() {{ case "$1" in has-feature) echo true;; *) query;; esac; }}; cmd() {{ echo com.google.android.googlequicksearchbox; }};\n'
             (work/'status.sh').write_bytes((mocks+script).encode())
             result = subprocess.run([BASH, str(work/'status.sh')], check=True, capture_output=True, text=True, encoding='utf-8')
-            self.assertIn('实时翻译配置已生效', result.stdout)
-            self.assertIn('Hey Google未修补', result.stdout)
+            self.assertIn('Live translation configuration active', result.stdout)
+            self.assertIn('Hey Google is not patched', result.stdout)
             self.assertFalse((work/'queried').exists())
 
     def test_payload_conflict_pauses_mount_and_can_recover(self):

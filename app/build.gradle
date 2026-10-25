@@ -2,10 +2,24 @@ plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.plugin.compose'
 }
+// CI can sign with a stable keystore (COOGLE_KEYSTORE + passwords via environment
+// variables); without it the build keeps the local debug keystore behavior.
+def releaseKeystore = System.getenv('COOGLE_KEYSTORE')
+def hasReleaseKeystore = releaseKeystore != null && file(releaseKeystore).exists()
 android {
     namespace 'io.github.zopulus.coogle'
     compileSdk { version = release(37) }
     buildToolsVersion '36.0.0'
+    if (hasReleaseKeystore) {
+        signingConfigs {
+            ci {
+                storeFile file(releaseKeystore)
+                storePassword System.getenv('COOGLE_STORE_PASSWORD')
+                keyAlias System.getenv('COOGLE_KEY_ALIAS')
+                keyPassword System.getenv('COOGLE_KEY_PASSWORD')
+            }
+        }
+    }
     defaultConfig {
         applicationId 'io.github.zopulus.coogle'
         minSdk 35
@@ -15,7 +29,7 @@ android {
         ndk { abiFilters 'arm64-v8a' }
     }
     buildTypes {
-        release { signingConfig signingConfigs.debug; minifyEnabled true; shrinkResources true; proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro' }
+        release { signingConfig hasReleaseKeystore ? signingConfigs.ci : signingConfigs.debug; minifyEnabled true; shrinkResources true; proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro' }
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     buildFeatures { compose true; buildConfig true }

@@ -153,10 +153,10 @@ internal object AssistantSettingsHooks {
                     }
                 },
             )
-            log("Enabled the ColorOS 17 Circle to Search settings category")
+            log("Enabled the supported ColorOS Circle to Search settings category")
         }.onFailure {
             installedHooks.remove(key)
-            log("Failed to enable the ColorOS 17 Circle to Search settings category", it)
+            log("Failed to enable the supported ColorOS Circle to Search settings category", it)
         }
     }
     private fun hookSettingsBreenoSpeechFeature(classLoader: ClassLoader) {

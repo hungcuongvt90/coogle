@@ -22,6 +22,7 @@ import io.github.zopulus.coogle.migration.AssistantRuntime.SECURE_ASSISTANT_TUTO
 import io.github.zopulus.coogle.migration.AssistantRuntime.INVOCATION_TYPE_GESTURE_CORNER_ASSISTANT
 import io.github.zopulus.coogle.migration.AssistantRuntime.INVOCATION_TYPE_POWER_BUTTON_LONG_PRESS
 import io.github.zopulus.coogle.migration.AssistantRuntime.INVOCATION_TYPE_CIRCLE_TO_SEARCH
+import io.github.zopulus.coogle.migration.AssistantRuntime.INVOCATION_TYPE_CIRCLE_TO_SEARCH_16
 import io.github.zopulus.coogle.migration.AssistantRuntime.INVOCATION_TYPE_CIRCLE_TO_SEARCH_ALTERNATE
 import io.github.zopulus.coogle.migration.AssistantRuntime.findContext
 import io.github.zopulus.coogle.migration.AssistantRuntime.findSystemContext
@@ -152,9 +153,14 @@ internal object AssistantSystemUiHooks {
                 runCatching {
                     val activityManager = XposedHelpers.findField(assistManagerClass, "mActivityManager")
                     require(ActivityManager::class.java.isAssignableFrom(activityManager.type))
+                    // 17 routes through the startAssist lambda; 16 names the entry directly.
+                    // Hook exactly one to keep the route frame stack balanced.
+                    val targetName = sequenceOf("startAssist\$1", "startAssist")
+                        .firstOrNull { name -> assistManagerClass.declaredMethods.any { it.name == name } }
+                        ?: throw NoSuchMethodException("no startAssist entry on ${assistManagerClass.name}")
                     XposedBridge.hookAllMethods(
                         assistManagerClass,
-                        "startAssist\$1",
+                        targetName,
                         object : XC_MethodHook() {
                             override fun beforeHookedMethod(param: MethodHookParam) {
                                 val enabled = isEnabledNativeInvocation(param.args.firstOrNull())
@@ -168,7 +174,8 @@ internal object AssistantSystemUiHooks {
                                 val bundle = param.args.firstOrNull() as? Bundle ?: return
                                 val type = bundle.getInt("invocation_type", 0)
                                 if (type != INVOCATION_TYPE_CIRCLE_TO_SEARCH &&
-                                    type != INVOCATION_TYPE_CIRCLE_TO_SEARCH_ALTERNATE) return
+                                    type != INVOCATION_TYPE_CIRCLE_TO_SEARCH_ALTERNATE &&
+                                    type != INVOCATION_TYPE_CIRCLE_TO_SEARCH_16) return
                                 val manager = param.thisObject ?: return
                                 val activity = activityManager.get(manager) as? ActivityManager ?: return
                                 // Route every circle request before the assistant picker/metrics path.
@@ -193,10 +200,10 @@ internal object AssistantSystemUiHooks {
                             }
                         },
                     )
-                    log("Hooked the ColorOS 17 SystemUI native assistant route")
+                    log("Hooked the supported ColorOS SystemUI native assistant route")
                 }.onFailure {
                     installedHooks.remove(key)
-                    log("Failed to scope the ColorOS 17 native assistant route", it)
+                    log("Failed to scope the supported ColorOS native assistant route", it)
                 }
             }
         }
@@ -221,7 +228,7 @@ internal object AssistantSystemUiHooks {
             )
         }.onFailure {
             installedHooks.remove(key)
-            log("Failed to pass the ColorOS 17 assistant region gate", it)
+            log("Failed to pass the supported ColorOS assistant region gate", it)
         }
     }
     private fun isEnabledNativeInvocation(argument: Any?): Boolean {
@@ -237,6 +244,7 @@ internal object AssistantSystemUiHooks {
 
             INVOCATION_TYPE_CIRCLE_TO_SEARCH,
             INVOCATION_TYPE_CIRCLE_TO_SEARCH_ALTERNATE,
+            INVOCATION_TYPE_CIRCLE_TO_SEARCH_16,
             -> LspConfig.isAssistantNativeCircleEnabledXposed() &&
                 isGestureCircleToSearchEnabled(context)
 

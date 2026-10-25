@@ -13,10 +13,10 @@ final class RootShell {
         final Reason reason;
         Failure(Reason reason) {
             super(switch (reason) {
-                case AUTHORIZATION -> "请在 KernelSU 中授予 Root 权限后重试。";
-                case UNAVAILABLE -> "未检测到可用的 Root 环境，请检查 KernelSU 是否正常运行。";
-                case TIMEOUT -> "操作超时，请重试。";
-                case EXECUTION -> "操作执行失败，请检查系统支持情况。";
+                case AUTHORIZATION -> "Grant Root permission in KernelSU and try again.";
+                case UNAVAILABLE -> "No usable Root environment was found. Check that KernelSU is working.";
+                case TIMEOUT -> "The operation timed out. Try again.";
+                case EXECUTION -> "The operation failed. Check system support.";
             });
             this.reason = reason;
         }

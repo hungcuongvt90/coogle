@@ -33,7 +33,7 @@ final class WalletPayment implements WalletSettings.Payment {
             String value = privileged.read().trim();
             if (value.isEmpty() || "null".equals(value)) return null;
             if (!value.matches("[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)+/[A-Za-z0-9_.$]+"))
-                throw new IOException("无法读取系统默认付款应用，未更改付款设置。");
+                throw new IOException("Unable to read the system default payment app. Payment settings were not changed.");
             return value;
         }
     }
@@ -44,12 +44,12 @@ final class WalletPayment implements WalletSettings.Payment {
     public boolean isGoogleDefault() throws Exception {
         PackageManager pm = context.getPackageManager();
         try {
-            if (!pm.getApplicationInfo(WALLET, 0).enabled) throw new IOException("请先安装并启用 Google 钱包。");
+            if (!pm.getApplicationInfo(WALLET, 0).enabled) throw new IOException("Install and enable Google Wallet first.");
         } catch (PackageManager.NameNotFoundException missing) {
-            throw new IOException("请先安装并启用 Google 钱包。", missing);
+            throw new IOException("Install and enable Google Wallet first.", missing);
         }
         if (!pm.hasSystemFeature(PackageManager.FEATURE_NFC_HOST_CARD_EMULATION))
-            throw new IOException("当前设备不支持 NFC 付款。");
+            throw new IOException("This device does not support NFC payments.");
         String component = current();
         if (!WalletPowerPolicy.isGooglePayment(component)) return false;
         ComponentName selected = ComponentName.unflattenFromString(component);
@@ -69,7 +69,7 @@ final class WalletPayment implements WalletSettings.Payment {
         String oldHolder = useRole ? RootShell.run("cmd role get-role-holders --user " + user
                 + " " + RoleManager.ROLE_WALLET, 20).trim() : "";
         if (!oldHolder.isEmpty() && !oldHolder.matches("[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)+"))
-            throw new IOException("无法读取系统默认钱包，未更改付款设置。");
+            throw new IOException("Unable to read the system default wallet. Payment settings were not changed.");
         String component = useRole ? null : paymentService();
         WalletSettings.Undo undo = () -> RootShell.run(restoreCommand(user, previous, useRole, oldHolder), 20);
         try { RootShell.run(selectionCommand(user, useRole, component), 20); }
@@ -97,13 +97,13 @@ final class WalletPayment implements WalletSettings.Payment {
                             || !"payment".equals(parser.getAttributeValue("http://schemas.android.com/apk/res/android", "category"))) continue;
                     String found = new ComponentName(service.packageName, service.name).flattenToString();
                     if (candidate != null && !candidate.equals(found))
-                        throw new IOException("存在多个 Google 付款服务，请先在系统 NFC 设置中选择 Google 付款应用。");
+                        throw new IOException("Multiple Google payment services were found. Select Google as the payment app in the system NFC settings first.");
                     candidate = found;
                     break;
                 }
             } finally { parser.close(); }
         }
-        if (candidate == null) throw new IOException("未找到 Google 付款服务，请完成 Google 钱包的初始化。");
+        if (candidate == null) throw new IOException("No Google payment service was found. Complete Google Wallet setup first.");
         return candidate;
     }
 

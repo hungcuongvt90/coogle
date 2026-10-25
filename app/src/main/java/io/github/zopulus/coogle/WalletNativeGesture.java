@@ -14,7 +14,7 @@ final class WalletNativeGesture implements WalletSettings.Gesture {
     record State(String enabled, String action) {
         State {
             if (!("null".equals(enabled) || "0".equals(enabled) || "1".equals(enabled)) || !validAction(action))
-                throw new IllegalArgumentException("原生钱包手势配置无效，未更改系统设置。");
+                throw new IllegalArgumentException("The native Wallet gesture configuration is invalid. System settings were not changed.");
         }
         private static boolean validAction(String value) {
             if ("null".equals(value)) return true;
@@ -85,7 +85,7 @@ final class WalletNativeGesture implements WalletSettings.Gesture {
         };
     }
     private void saveBackup(State value) throws IOException {
-        if (!backup.write(value)) throw new IOException("原生钱包手势的原设置未保存，未完成操作。");
+        if (!backup.write(value)) throw new IOException("The original native Wallet gesture setting was not saved. The operation was not completed.");
     }
 
     private State read(boolean requireSupport) throws Exception {
@@ -93,17 +93,17 @@ final class WalletNativeGesture implements WalletSettings.Gesture {
     }
     private void write(State value) throws Exception {
         if (!value.equals(parse(shell.run(writeCommand(user, value)))))
-            throw new IOException("原生钱包手势配置未生效，已尝试恢复原设置。");
+            throw new IOException("The native Wallet gesture configuration did not take effect. The original setting was restored.");
     }
     private static State parse(String output) throws IOException {
         switch (output.trim()) {
-            case "COOGLE_WALLET_MODE_UNAVAILABLE": throw new IOException("无法读取系统原生双击模式，未更改手势设置。");
-            case "COOGLE_WALLET_MODE_UNSUPPORTED": throw new IOException("当前系统不支持原生双击钱包模式，未更改手势设置。");
-            case "COOGLE_WALLET_FLAGS_UNAVAILABLE": throw new IOException("无法读取原生钱包支持标志，未更改手势设置。");
-            case "COOGLE_WALLET_FLAGS_DISABLED": throw new IOException("当前系统未启用原生双击钱包支持，未更改手势设置。");
+            case "COOGLE_WALLET_MODE_UNAVAILABLE": throw new IOException("Unable to read the native double-press mode. Gesture settings were not changed.");
+            case "COOGLE_WALLET_MODE_UNSUPPORTED": throw new IOException("This system does not support the native double-press Wallet mode. Gesture settings were not changed.");
+            case "COOGLE_WALLET_FLAGS_UNAVAILABLE": throw new IOException("Unable to read the native Wallet support flags. Gesture settings were not changed.");
+            case "COOGLE_WALLET_FLAGS_DISABLED": throw new IOException("Native double-press Wallet support is disabled. Gesture settings were not changed.");
         }
         String[] values = output.trim().split("\\R", -1);
-        if (values.length != 2) throw new IOException("原生钱包手势配置读取失败。");
+        if (values.length != 2) throw new IOException("Failed to read the native Wallet gesture configuration.");
         try { return new State(values[0], values[1]); }
         catch (IllegalArgumentException invalid) { throw new IOException(invalid.getMessage(), invalid); }
     }

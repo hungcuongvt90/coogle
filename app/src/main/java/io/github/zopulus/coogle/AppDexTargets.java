@@ -51,7 +51,8 @@ final class AppDexTargets implements AutoCloseable {
     List<Method> resolve(String feature) throws ReflectiveOperationException {
         if (!FeaturePolicy.LENS.equals(feature) && !FeaturePolicy.CAMERA_LENS.equals(feature)
                 && !WalletPreviewCandidates.CACHE_FEATURE.equals(feature)
-                && !ActionButtonLensBinding.CACHE_FEATURE.equals(feature))
+                && !ActionButtonLensBinding.CACHE_FEATURE.equals(feature)
+                && !ActionButtonLensBinding.CACHE_FEATURE_16.equals(feature))
             throw new IllegalArgumentException("Unsupported dynamic feature");
         // Revised locators must not reuse old descriptors or deterministic misses.
         String cacheKey = switch (feature) {
@@ -85,6 +86,7 @@ final class AppDexTargets implements AutoCloseable {
             case FeaturePolicy.CAMERA_LENS -> findCameraLens();
             case WalletPreviewCandidates.CACHE_FEATURE -> findWalletPreviewCandidates();
             case ActionButtonLensBinding.CACHE_FEATURE -> findActionButtonLens();
+            case ActionButtonLensBinding.CACHE_FEATURE_16 -> findActionButtonLens16();
             default -> throw new IllegalArgumentException("Unsupported dynamic feature");
         };
         if (methods.isEmpty()) {
@@ -103,6 +105,7 @@ final class AppDexTargets implements AutoCloseable {
 
     private static boolean valid(String feature, List<Method> methods) {
         if (ActionButtonLensBinding.CACHE_FEATURE.equals(feature)) return ActionButtonLensBinding.valid(methods);
+        if (ActionButtonLensBinding.CACHE_FEATURE_16.equals(feature)) return ActionButtonLensBinding.valid16(methods);
         if (WalletPreviewCandidates.CACHE_FEATURE.equals(feature)) return WalletPreviewCandidates.valid(methods);
         if (FeaturePolicy.CAMERA_LENS.equals(feature))
             return CameraLensBinding.valid(methods);
@@ -164,6 +167,20 @@ final class AppDexTargets implements AutoCloseable {
         if (callers.size() > 16) return List.of();
         result.addAll(callers);
         return result;
+    }
+
+    /** 16: the camera scene dispatches through the generic quick-launch camera path. */
+    private List<Method> findActionButtonLens16() throws ReflectiveOperationException {
+        var scenes = bridge.findMethod(FindMethod.create().matcher(MethodMatcher.create()
+                .returnType("void").paramCount(1)
+                .usingStrings(List.of("longPressStartCamera currentScene = "))));
+        var launchers = bridge.findMethod(FindMethod.create().matcher(MethodMatcher.create()
+                .returnType("void").paramCount(3)
+                .paramTypes("java.lang.String", "android.content.Intent", "java.lang.String")
+                .usingStrings(List.of("quickLaunchCamera, type="))));
+        if (scenes.size() != 1 || launchers.size() != 1) return List.of();
+        Method launcher = launchers.get(0).getMethodInstance(loader);
+        return ActionButtonLensBinding.valid16(List.of(launcher)) ? List.of(launcher) : List.of();
     }
 
     private List<Method> findCameraLens() throws ReflectiveOperationException {

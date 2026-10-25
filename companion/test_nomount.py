@@ -156,7 +156,7 @@ class GoogleSystemStatusTest(unittest.TestCase):
                 mocks="dumpsys() { printf '%s' '"+text+"'; }; pm() { echo false; }; cmd() { echo other; };\n"
                 run=root/'status.sh'; run.write_bytes((mocks+script).encode())
                 result=subprocess.run([BASH,str(run)],check=True,capture_output=True,text=True,encoding='utf-8')
-                self.assertEqual('✅Google系统应用' in result.stdout,expected)
+                self.assertEqual('✅Google system app' in result.stdout,expected)
 
 
 if __name__ == '__main__': unittest.main()

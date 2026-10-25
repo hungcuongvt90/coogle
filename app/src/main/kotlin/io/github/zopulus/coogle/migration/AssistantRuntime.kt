@@ -44,6 +44,8 @@ internal object AssistantRuntime {
     const val INVOCATION_TYPE_POWER_BUTTON_LONG_PRESS = 6
     const val INVOCATION_TYPE_CIRCLE_TO_SEARCH = 8
     const val INVOCATION_TYPE_CIRCLE_TO_SEARCH_ALTERNATE = 1000
+    /** 16's gesture bar forwards its own circle-to-search type through startAssistant. */
+    const val INVOCATION_TYPE_CIRCLE_TO_SEARCH_16 = 93
     private val contextFieldCache = ConcurrentHashMap<Class<*>, Field>()
     fun findContext(source: Any?): Context? {
         val direct = source as? Context

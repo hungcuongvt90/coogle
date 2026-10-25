@@ -8,3 +8,4 @@ app/build/
 test-crc/
 work/
 __pycache__/
+device-dumps/

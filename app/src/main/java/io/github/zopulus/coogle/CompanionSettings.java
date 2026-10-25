@@ -27,7 +27,7 @@ final class CompanionSettings {
             String state = support.set(enabled);
             boolean ready = installed(state);
             boolean known = !"MISSING".equals(state);
-            if (enabled && !ready) throw new IOException("请先安装并启用新版附属模块。");
+            if (enabled && !ready) throw new IOException("Install and enable the latest companion module first.");
             if (enabled != previous || ready != previousReady || known != previousKnown)
                 commit(settings.edit().putBoolean(FeaturePolicy.HEY_GOOGLE, enabled)
                         .putBoolean("companion_ready", ready).putBoolean("companion_known", known));
@@ -68,6 +68,6 @@ final class CompanionSettings {
     }
     private static boolean installed(String state) { return "READY".equals(state) || "PENDING".equals(state); }
     private static void commit(SharedPreferences.Editor editor) throws IOException {
-        if (!editor.commit()) throw new IOException("配置未保存，请检查 LSPosed 连接。");
+        if (!editor.commit()) throw new IOException("Settings were not saved. Check the LSPosed connection.");
     }
 }

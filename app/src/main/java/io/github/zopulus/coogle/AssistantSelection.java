@@ -15,17 +15,17 @@ final class AssistantSelection {
             String value = Settings.Secure.getString(context.getContentResolver(), "assistant");
             if (value == null || value.isBlank())
                 value = Settings.Secure.getString(context.getContentResolver(), "voice_interaction_service");
-            if (value == null || value.isBlank()) return "当前数字助理：未选择";
+            if (value == null || value.isBlank()) return "Current assistant: none selected";
             ComponentName component = ComponentName.unflattenFromString(value);
-            if (component == null) return "当前数字助理：未选择";
+            if (component == null) return "Current assistant: none selected";
             String name = component.getPackageName();
             try {
                 PackageManager manager = context.getPackageManager();
                 name = manager.getApplicationLabel(manager.getApplicationInfo(name, 0)).toString();
             } catch (PackageManager.NameNotFoundException ignored) { }
-            return "当前数字助理：" + name;
+            return "Current assistant: " + name;
         } catch (SecurityException failure) {
-            return "点击查看系统当前选择";
+            return "Tap to view the current system selection";
         }
     }
 

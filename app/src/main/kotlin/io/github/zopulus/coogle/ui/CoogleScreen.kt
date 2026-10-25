@@ -92,13 +92,13 @@ fun CoogleScreen(
             TwoRowsTopAppBar(
                 // Match KernelSU's LargeFlexibleTopAppBar title tokens; only the expanded row has a subtitle.
                 title = { expanded -> Text("Coogle", style = if (expanded) MaterialTheme.typography.displaySmall else MaterialTheme.typography.titleLarge) },
-                subtitle = { expanded -> if (expanded) Text("让国行版ColorOS更加Google", style = MaterialTheme.typography.titleMedium) },
+                subtitle = { expanded -> if (expanded) Text("Make Chinese ColorOS more Google-like", style = MaterialTheme.typography.titleMedium) },
                 collapsedHeight = TopAppBarDefaults.LargeAppBarCollapsedHeight,
                 expandedHeight = TopAppBarDefaults.LargeFlexibleAppBarWithSubtitleExpandedHeight,
                 actions = {
                     val enabled = state.connected == true && !state.busy && !state.restarting && !state.scopePending
                     IconButton(onClick = onRestart, enabled = enabled) {
-                        ControlIcon(ControlIcons.Restart, "重启作用域", enabled)
+                        ControlIcon(ControlIcons.Restart, "Restart scopes", enabled)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -149,40 +149,40 @@ fun CoogleScreen(
                         supportingContentColor = statusContentColor.copy(alpha = 0.7f)),
                     elevation = ListItemDefaults.elevation(),
                     content = {
-                        Text(when (state.connected) { true -> "已激活"; false -> "未激活"; null -> "正在连接…" },
+                        Text(when (state.connected) { true -> "Active"; false -> "Inactive"; null -> "Connecting…" },
                             style = MaterialTheme.typography.titleMediumEmphasized)
                     }
                 )
             }
             val available = state.connected == true && !state.scopePending
-            Group("数字助理") {
-                SettingRow(0, 3, Icons.Rounded.RecordVoiceOver, "默认数字助理", state.assistant, onClick = onAssistant)
+            Group("Assistant") {
+                SettingRow(0, 3, Icons.Rounded.RecordVoiceOver, "Default assistant", state.assistant, onClick = onAssistant)
                 ToggleRow(1, 3, Icons.Rounded.Mic, "Hey Google", state.heyDescription,
                     checked = state.features[FeaturePolicy.HEY_GOOGLE], enabled = available && !state.busy && state.heyAvailable,
                     onChange = { onSetting(FeaturePolicy.HEY_GOOGLE, it) })
-                ToggleRow(2, 3, ImageVector.vectorResource(R.drawable.action_lens_color), "Google智能镜头", "补全Google智能镜头功能",
+                ToggleRow(2, 3, ImageVector.vectorResource(R.drawable.action_lens_color), "Google Lens", "Complete the Google Lens integration",
                     state.features[FeaturePolicy.LENS], available, { onSetting(FeaturePolicy.LENS, it) })
             }
-            Group("系统设置") {
-                ToggleRow(0, 7, Icons.Rounded.TouchApp, "系统导航方式", state.navigationDescription,
+            Group("System settings") {
+                ToggleRow(0, 7, Icons.Rounded.TouchApp, "System navigation", state.navigationDescription,
                     state.features[FeaturePolicy.NAVIGATION], available, { onSetting(FeaturePolicy.NAVIGATION, it) })
-                ToggleRow(1, 7, Icons.Rounded.Search, "Google搜索框", "在桌面底部显示 Google 搜索框",
+                ToggleRow(1, 7, Icons.Rounded.Search, "Google search bar", "Show the Google search bar at the bottom of the launcher",
                     state.features[FeaturePolicy.SEARCH_BAR], available, { onSetting(FeaturePolicy.SEARCH_BAR, it) })
-                ToggleRow(2, 7, ControlIcons.ActionButton, "快捷键智能镜头", "将快捷键中AI拍一拍替换为智能镜头",
+                ToggleRow(2, 7, ControlIcons.ActionButton, "Shortcut Google Lens", "Replace the shortcut AI scanner with Google Lens",
                     state.features[FeaturePolicy.ACTION_BUTTON_LENS], available, { onSetting(FeaturePolicy.ACTION_BUTTON_LENS, it) })
-                ToggleRow(3, 7, Icons.Rounded.AccountBalanceWallet, "Google钱包", "息屏时双击电源键呼出Google钱包",
+                ToggleRow(3, 7, Icons.Rounded.AccountBalanceWallet, "Google Wallet", "Open Google Wallet by double-pressing the power button while the screen is off",
                     state.features[FeaturePolicy.WALLET], available, { onSetting(FeaturePolicy.WALLET, it) })
-                ToggleRow(4, 7, Icons.Rounded.DashboardCustomize, "快捷入口与控制中心", "补全锁屏快捷入口与下拉控制中心的原生开关",
+                ToggleRow(4, 7, Icons.Rounded.DashboardCustomize, "Shortcuts and Control Center", "Restore native switches for lock-screen shortcuts and Control Center",
                     state.features[FeaturePolicy.QUICK_ENTRIES], available, { onSetting(FeaturePolicy.QUICK_ENTRIES, it) })
-                ToggleRow(5, 7, Icons.Rounded.LockOpen, "移除 GMS 使用限制", "移除国行 GMS 限制标记",
+                ToggleRow(5, 7, Icons.Rounded.LockOpen, "Remove GMS restrictions", "Remove the China-region GMS restriction marker",
                     state.features[FeaturePolicy.GMS], available, { onSetting(FeaturePolicy.GMS, it) })
-                ToggleRow(6, 7, Icons.Rounded.SettingsSuggest, "设置底部显示 Google", "强制显示设置底部Google",
+                ToggleRow(6, 7, Icons.Rounded.SettingsSuggest, "Show Google in Settings", "Always show Google services at the bottom of Settings",
                     state.features[FeaturePolicy.GOOGLE_ENTRY], available, { onSetting(FeaturePolicy.GOOGLE_ENTRY, it) })
             }
-            Group("其他设置") {
-                ToggleRow(0, 2, Icons.Rounded.VisibilityOff, "隐藏桌面图标", "隐藏后，可从 LSPosed 中打开",
+            Group("Other settings") {
+                ToggleRow(0, 2, Icons.Rounded.VisibilityOff, "Hide launcher icon", "After hiding it, open Coogle from LSPosed",
                     state.iconHidden, true, onIconVisibility)
-                SettingRow(1, 2, Icons.Rounded.Info, "关于 Coogle", "zopulus · ${BuildConfig.VERSION_NAME}", onClick = onAbout)
+                SettingRow(1, 2, Icons.Rounded.Info, "About Coogle", "zopulus · ${BuildConfig.VERSION_NAME}", onClick = onAbout)
             }
             Spacer(Modifier.height(24.dp))
         }
@@ -231,7 +231,7 @@ private fun SettingRow(index: Int, count: Int, icon: ImageVector, title: String,
 private fun ToggleRow(index: Int, count: Int, icon: ImageVector, title: String, summary: String,
     checked: Boolean?, enabled: Boolean, onChange: (Boolean) -> Unit) {
     SettingRow(index, count, icon, title, summary, { if (checked != null) onChange(!checked) }, enabled && checked != null,
-        Modifier.semantics { role = Role.Switch; stateDescription = when (checked) { true -> "已开启"; false -> "已关闭"; null -> "正在读取" } }) {
+        Modifier.semantics { role = Role.Switch; stateDescription = when (checked) { true -> "On"; false -> "Off"; null -> "Reading" } }) {
         if (checked == null) {
             Box(Modifier.size(width = 52.dp, height = 32.dp).background(
                 MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(16.dp)))
@@ -255,29 +255,29 @@ private fun ToggleRow(index: Int, count: Int, icon: ImageVector, title: String, 
 private fun CoogleDialog(state: CoogleState, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     if (state.dialog == DialogKind.NONE) return
     val title = when (state.dialog) {
-        DialogKind.STATUS -> "模块状态"
-        DialogKind.RESTART -> "重启作用域"
-        DialogKind.INSTALLED -> "安装完成"
-        DialogKind.HIDE_ICON -> "隐藏桌面图标？"
-        DialogKind.ROOT_REQUIRED -> "需要 Root 授权"
-        else -> "操作未完成"
+        DialogKind.STATUS -> "Module status"
+        DialogKind.RESTART -> "Restart scopes"
+        DialogKind.INSTALLED -> "Installation complete"
+        DialogKind.HIDE_ICON -> "Hide launcher icon?"
+        DialogKind.ROOT_REQUIRED -> "Root permission required"
+        else -> "Operation incomplete"
     }
     val message = when (state.dialog) {
-        DialogKind.STATUS -> "在 LSPosed 中启用 Coogle 并勾选推荐作用域。更改设置后，重启对应作用域生效。\n\n附属模块提供 Google 系统应用、系统级 Voice Match 组件及圈定即搜实时翻译配置。\n\n${state.companionSummary}"
-        DialogKind.RESTART -> "重启目标作用域会关闭 LSPosed 中已勾选的应用，系统界面可能短暂重载。之后请重新打开对应应用。\n\n系统框架及 Hey Google 组件配置需要重启设备才能生效。操作会请求 Root 授权。"
+        DialogKind.STATUS -> "Enable Coogle in LSPosed and select the recommended scopes. Restart the affected scopes after changing settings.\n\nThe companion module provides the Google system app, system-level Voice Match components, and Circle to Search live-translation configuration.\n\n${state.companionSummary}"
+        DialogKind.RESTART -> "Restarting the selected scopes will close the applications enabled in LSPosed, and System UI may reload briefly. Reopen the affected applications afterward.\n\nSystem framework and Hey Google configuration changes require a device reboot. Root permission is required."
         DialogKind.INSTALLED -> if (state.companion == CompanionState.DISABLED)
-            "附属模块已安装，但尚未启用。请在 KernelSU 中启用附属模块后重启设备。"
+            "The companion module is installed but disabled. Enable it in KernelSU, then reboot the device."
             else if (state.features[FeaturePolicy.HEY_GOOGLE] == true)
-            "附属模块已安装，请重启设备完成挂载，再在 Google 设置中开启 Voice Match。"
-            else "附属模块已安装，请重启设备完成挂载。"
-        DialogKind.HIDE_ICON -> "隐藏后，仍可从 LSPosed 的 Coogle 模块设置入口打开应用。"
+            "The companion module is installed. Reboot the device to mount it, then enable Voice Match in Google settings."
+            else "The companion module is installed. Reboot the device to complete mounting."
+        DialogKind.HIDE_ICON -> "After hiding the icon, open the app from Coogle's module settings entry in LSPosed."
         else -> state.dialogText
     }
     val confirm = when (state.dialog) {
-        DialogKind.STATUS -> "安装附属模块"
-        DialogKind.RESTART -> "重启目标作用域"
-        DialogKind.HIDE_ICON -> "隐藏"
-        else -> "知道了"
+        DialogKind.STATUS -> "Install companion module"
+        DialogKind.RESTART -> "Restart scopes"
+        DialogKind.HIDE_ICON -> "Hide"
+        else -> "OK"
     }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -298,7 +298,7 @@ private fun CoogleDialog(state: CoogleState, onConfirm: () -> Unit, onDismiss: (
                 (state.dialog != DialogKind.STATUS || (state.connected == true && !state.scopePending && !state.companionChecking))) { Text(confirm) }
         },
         dismissButton = if (state.dialog in setOf(DialogKind.STATUS, DialogKind.RESTART, DialogKind.HIDE_ICON)) {
-            { TextButton(onClick = onDismiss) { Text(if (state.dialog == DialogKind.STATUS) "关闭" else "取消") } }
+            { TextButton(onClick = onDismiss) { Text(if (state.dialog == DialogKind.STATUS) "Close" else "Cancel") } }
         } else null
     )
 }

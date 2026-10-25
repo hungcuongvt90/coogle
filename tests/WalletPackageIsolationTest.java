@@ -9,7 +9,7 @@ import java.lang.reflect.Proxy;
 public final class WalletPackageIsolationTest {
     public static void main(String[] args) {
         SystemProperties.colorOsVersion = "V17.0";
-        check(SystemCompatibility.isColorOs17(), "Test must exercise the eligible platform branch");
+        check(SystemCompatibility.isSupportedColorOs(), "Test must exercise the eligible platform branch");
         boolean[] enabled = {false};
         FeatureConfig.attach((SharedPreferences) Proxy.newProxyInstance(
                 SharedPreferences.class.getClassLoader(), new Class<?>[]{SharedPreferences.class},

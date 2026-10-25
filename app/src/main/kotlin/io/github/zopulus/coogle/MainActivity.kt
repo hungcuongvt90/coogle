@@ -156,7 +156,7 @@ class MainActivity : ComponentActivity() {
                         settings.edit().putBoolean(key, value).commit()
                     }
                 } else if (!settings.edit().putBoolean(key, enabled).commit()) {
-                    throw IOException("配置未保存，请检查 LSPosed 连接。")
+                    throw IOException("Settings were not saved. Check the LSPosed connection.")
                 }
             }
             runOnUiThread {
@@ -165,7 +165,7 @@ class MainActivity : ComponentActivity() {
                 result.onSuccess {
                     syncPreferences()
                     if (supportState != null) confirmCompanion(supportState)
-                }.onFailure { error(it, "配置保存失败，请重试。") }
+                }.onFailure { error(it, "Failed to save settings. Try again.") }
             }
         }
     }
@@ -188,7 +188,7 @@ class MainActivity : ComponentActivity() {
                     confirmCompanion(installed)
                 }.onFailure {
                     state = state.copy(companionError = failureMessage(it,
-                        "无法读取附属模块状态，请检查系统支持情况。"))
+                        "Unable to read the companion module status. Check system support."))
                 }
             }
         }
@@ -213,8 +213,8 @@ class MainActivity : ComponentActivity() {
                     // Without root, the cached installation status cannot be reconfirmed.
                     if (it is RootShell.Failure && (it.reason == RootShell.Reason.AUTHORIZATION ||
                         it.reason == RootShell.Reason.UNAVAILABLE))
-                        state = state.copy(companionError = failureMessage(it, "无法读取附属模块状态。"))
-                    error(it, "附属模块安装失败，请检查 KernelSU 是否正常运行。")
+                        state = state.copy(companionError = failureMessage(it, "Unable to read the companion module status."))
+                    error(it, "Companion module installation failed. Check that KernelSU is working.")
                 }
             }
         }
@@ -237,14 +237,14 @@ class MainActivity : ComponentActivity() {
                 if (isDestroyed) return@runOnUiThread
                 state = state.copy(restarting = false)
                 result.onSuccess {
-                    Toast.makeText(this, "作用域已重启，请重新打开对应应用。", Toast.LENGTH_LONG).show()
-                }.onFailure { error(it, "无法重启作用域，请检查系统支持情况。") }
+                    Toast.makeText(this, "Scopes restarted. Reopen the affected applications.", Toast.LENGTH_LONG).show()
+                }.onFailure { error(it, "Unable to restart scopes. Check system support.") }
             }
         }
     }
 
     private fun openAssistant() {
-        runCatching { AssistantSelection.open(this) }.onFailure { error("无法打开系统语音助理选择页面。") }
+        runCatching { AssistantSelection.open(this) }.onFailure { error("Unable to open the system assistant selection page.") }
     }
 
     private fun iconHidden() = packageManager.getComponentEnabledSetting(ComponentName(this, "$packageName.Launcher")) ==
@@ -260,7 +260,7 @@ class MainActivity : ComponentActivity() {
                 if (hidden) PackageManager.COMPONENT_ENABLED_STATE_DISABLED else PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                 PackageManager.DONT_KILL_APP)
             state = state.copy(iconHidden = hidden)
-        }.onFailure { error("无法修改桌面图标状态。") }
+        }.onFailure { error("Unable to change the launcher icon state.") }
     }
 
     private fun confirmDialog() {
@@ -288,12 +288,11 @@ class MainActivity : ComponentActivity() {
     private fun failureMessage(failure: Throwable, fallback: String): String {
         if (failure is RootShell.Failure) return failure.message ?: fallback
         // Only our explicit, localized I/O errors are user-facing; platform exceptions may be English.
-        return if (failure is IOException && failure.message?.any { it in '\u4e00'..'\u9fff' } == true)
-            failure.message!! else fallback
+        return if (failure is IOException && !failure.message.isNullOrBlank()) failure.message!! else fallback
     }
     private fun openRepository() {
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/zopulus/coogle"))) }
-            .onFailure { error("请使用浏览器打开 github.com/zopulus/coogle。") }
+            .onFailure { error("Open github.com/zopulus/coogle in a browser.") }
     }
 
 }

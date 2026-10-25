@@ -1,34 +1,49 @@
 # Coogle
 
-让国行版ColorOS更加Google，仅适配ColorOS17。
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-## 功能
+Make Chinese-market ColorOS more Google-like. Supports ColorOS 16 and 17.
 
-- **Hey Google**：补全国行系统的 Google 语音唤醒支持。
-- **Google 智能镜头**：补全 Google 智能镜头功能入口。
-- **系统导航方式**：补全设置中的导航选项，支持圈定即搜和左/右下角向内滑动呼出数字助理。
-- **Google 搜索框**：启用桌面底部 Google 搜索框。
-- **Google 钱包**：支持双击电源键呼出 Google 钱包卡片，需将 Google 钱包设置为默认付款应用。
-- **锁屏快捷入口**：补全 Google 数字助理、电子钱包、扫描二维码和家居控制。
-- **控制中心**：补全原生钱包、二维码扫描入口。
-- **移除 GMS 对国行的使用限制**。
-- **设置底部显示 Google 服务**。
+## Features
 
-## Coogle 附属模块
+- **Hey Google**: restore Google voice activation on Chinese-market firmware.
+- **Google Lens**: restore the Google Lens entry points.
+- **System navigation**: restore navigation options in Settings, Circle to Search, and the assistant gesture from the lower corners.
+- **Google search bar**: enable the Google search bar at the bottom of the launcher.
+- **Google Wallet**: open the Google Wallet card by double-pressing the power button; set Google Wallet as the default payment app.
+- **Lock-screen shortcuts**: restore Google Assistant, Wallet, QR scanner, and home-control shortcuts.
+- **Control Center**: restore the native Wallet and QR scanner entries.
+- **GMS restrictions**: remove the China-region GMS restriction markers.
+- **Settings Google entry**: show Google services at the bottom of Settings.
 
-整合 Google 系统应用固化、Hotword 注册组件、DSP 唤醒支持和圈定即搜实时翻译配置。
+## Installation
 
-开启 Hey Google 时自动检查附属模块。
+Requirements: a rooted device (KernelSU), an LSPosed-compatible framework (LSPosed, Vector, or another libxposed implementation), and ColorOS 16 or 17.
 
-Google 固化与圈定即搜实时翻译配置默认开启，语音组件由 APK 开关同步控制；关闭 Hey Google 后，重启即停止挂载语音注册/DSP 配置，并跳过模型初始化。首次安装或从旧菜单版升级时，语音支持默认关闭，避免未与 APK 开关同步就执行初始化。
+1. Install the release APK. The APK embeds the companion module, so no separate download is needed.
+2. Enable Coogle in the framework manager and approve the scope requests.
+3. Open Coogle and grant it root in KernelSU; confirm the companion module installation from the status card.
+4. Reboot once so the companion payloads (Google systemization, hotword components, live-translation overlay) are mounted, then enable the features you want.
 
-## 致谢
+## Coogle companion module
 
-部分代码参考 [ONextBox](https://github.com/MiToverG422/ONextBox) 和 [LuckyTool](https://github.com/luckyzyx/LuckyTool)。
+The companion module combines Google system-app systemization, Hotword enrollment components, software hotword detection, and Circle to Search live-translation configuration.
 
-UI 参考 [KernelSU](https://github.com/tiann/KernelSU) 和 [LSPosed](https://github.com/LSPosed/LSPosed)。
+The companion module is checked automatically when Hey Google is enabled.
 
-感谢以上项目的开发者与贡献者。
+Google systemization and Circle to Search live-translation configuration are enabled by default. The voice components follow the APK switch and use software hotword detection. The DSP wake-word audio patch is removed because it conflicts with the vendor location HAL on affected ColorOS 16 firmware. After Hey Google is disabled, rebooting stops the voice-enrollment mounts and skips model initialization. Voice support is disabled by default on first install or upgrade from an older menu version so initialization cannot run before the APK switch is synchronized.
 
-作者：**zopulus**\
-开源协议：**GPL-3.0**
+## Building
+
+See [BUILDING.md](BUILDING.md). GitHub Actions builds the release APK with the embedded companion module on every push and publishes it on version tags; see the [Releases](https://github.com/zopulus/coogle/releases) page.
+
+## Credits
+
+Some code is based on [ONextBox](https://github.com/MiToverG422/ONextBox) and [LuckyTool](https://github.com/luckyzyx/LuckyTool).
+
+The UI is inspired by [KernelSU](https://github.com/tiann/KernelSU) and [LSPosed](https://github.com/LSPosed/LSPosed).
+
+Thanks to the developers and contributors of these projects.
+
+Author: **zopulus**
+License: **GPL-3.0**

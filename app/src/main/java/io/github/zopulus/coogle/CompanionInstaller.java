@@ -9,7 +9,7 @@ import static io.github.zopulus.coogle.RootShell.run;
 /** Root is used only after the user asks to check/install the companion. */
 public final class CompanionInstaller {
     private static final String DIR="/data/adb/modules/coogle_companion";
-    static final int REQUIRED_PAYLOAD_REVISION = 3;
+    static final int REQUIRED_PAYLOAD_REVISION = 5;
     public static String check() throws Exception {
         return state(run(statusCommand(),20));
     }
@@ -43,7 +43,7 @@ public final class CompanionInstaller {
         output = output.trim();
         String state = output.substring(output.lastIndexOf('\n') + 1).trim();
         if (!java.util.Set.of("MISSING", "DISABLED", "PENDING", "READY", "UPDATE_REQUIRED").contains(state))
-            throw new java.io.IOException("无法读取附属模块状态");
+            throw new java.io.IOException("Unable to read the companion module status.");
         return state;
     }
     public static void install(Context context) throws Exception {

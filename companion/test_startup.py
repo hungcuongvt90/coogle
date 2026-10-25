@@ -47,7 +47,7 @@ class StartupTest(unittest.TestCase):
             (work/'status.sh').write_bytes((mocks+script).encode('utf-8'))
             run = lambda: subprocess.run([str(BASH), str(work/'status.sh')], check=True,
                                          capture_output=True, text=True, encoding='utf-8')
-            self.assertIn('组件准备失败，挂载已暂停', run().stdout)
+            self.assertIn('Component preparation failed; mounting paused', run().stdout)
             os.utime(prop, ns=(1_000_000_000, 1_000_000_000))
             timestamp = prop.stat().st_mtime_ns
             run()

@@ -76,11 +76,11 @@ internal object AssistantPowerHooks {
                         }
                     },
                 )
-                log("Hooked the ColorOS 17 native power-button assistant entry")
+                log("Hooked the supported ColorOS native power-button assistant entry")
             }
         }.onFailure {
             installedHooks.remove(key)
-            log("Failed to hook the ColorOS 17 native power-button assistant entry", it)
+                log("Failed to hook the supported ColorOS native power-button assistant entry", it)
         }
     }
     @Suppress("UNCHECKED_CAST")
@@ -105,7 +105,7 @@ internal object AssistantPowerHooks {
                 as? MutableMap<Any?, Any?>
             enabledMap?.set(currentUser, internationalPowerState)
         }.onFailure {
-            log("Failed to select the ColorOS 17 native power assistant route", it)
+                log("Failed to select the supported ColorOS native power assistant route", it)
         }
     }
     private fun registerPowerSettingBridge(source: Any, context: Context) {

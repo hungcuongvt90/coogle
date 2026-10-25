@@ -55,7 +55,7 @@ final class SettingsConnection {
                 current.requestScope(packages, new XposedService.OnScopeEventListener() {
                     @Override public void onScopeRequestApproved(List<String> approved) { completion.accept(null); }
                     @Override public void onScopeRequestFailed(String message) {
-                        completion.accept("作用域请求未完成，请在 LSPosed 中手动勾选对应应用后重试。");
+                        completion.accept("The scope request is incomplete. Select the required applications manually in LSPosed and try again.");
                     }
                 });
             }
@@ -80,7 +80,7 @@ final class SettingsConnection {
         if (activity.get() == value) activity.clear();
     }
     static synchronized List<String> currentScope() throws java.io.IOException {
-        if (service == null) throw new java.io.IOException("请先激活 Coogle 并连接 LSPosed。");
+        if (service == null) throw new java.io.IOException("Activate Coogle and connect LSPosed first.");
         return service.getScope();
     }
     private SettingsConnection() { }

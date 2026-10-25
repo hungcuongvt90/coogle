@@ -44,10 +44,10 @@ internal object AssistantLauncherHooks {
                     }
                 },
             )
-            log("Enabled the ColorOS 17 launcher Gemini feature gate")
+            log("Enabled the supported ColorOS launcher Gemini feature gate")
         }.onFailure {
             installedHooks.remove(key)
-            log("Failed to enable the ColorOS 17 launcher Circle to Search route", it)
+            log("Failed to enable the supported ColorOS launcher Circle to Search route", it)
         }
         // Standalone CN17 build retains native e(93, Context) and its recents-animation wait.
         // The upstream override uses firmware-specific proxy names and is unnecessary here.
