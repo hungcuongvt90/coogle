@@ -33,6 +33,8 @@ final class CompanionSettings {
                         .putBoolean("companion_ready", ready).putBoolean("companion_known", known));
             return state;
         } catch (Exception failure) {
+            // No privileged command ran when the root handshake could not complete.
+            if (RootShell.commandNotStarted(failure)) throw failure;
             try {
                 // A failed commit may already have changed the preferences' memory view.
                 if (requested(settings) != previous || settings.getBoolean("companion_ready", false) != previousReady

@@ -38,7 +38,7 @@ class CombinedTest(unittest.TestCase):
         with zipfile.ZipFile(OUT) as z:
             self.assertIn(b'author=zopulus\n',z.read('module.prop'))
             self.assertIn(b'id=coogle_companion\n',z.read('module.prop'))
-            self.assertIn('name=Coogle Companion Module\n'.encode(),z.read('module.prop'))
+            self.assertIn('name=Coogle 附属模块\n'.encode(),z.read('module.prop'))
             self.assertNotIn('Google系统应用 + Hotword + DSP'.encode(), z.read('module.prop'))
             self.assertNotIn('Google系统应用 + Hotword + DSP'.encode(), z.read('status.sh'))
             installer = z.read('customize.sh')

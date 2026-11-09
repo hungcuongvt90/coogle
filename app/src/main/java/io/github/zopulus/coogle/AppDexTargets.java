@@ -50,19 +50,15 @@ final class AppDexTargets implements AutoCloseable {
 
     List<Method> resolve(String feature) throws ReflectiveOperationException {
         if (!FeaturePolicy.LENS.equals(feature) && !FeaturePolicy.CAMERA_LENS.equals(feature)
-                && !WalletPreviewCandidates.CACHE_FEATURE.equals(feature)
                 && !ActionButtonLensBinding.CACHE_FEATURE.equals(feature)
                 && !ActionButtonLensBinding.CACHE_FEATURE_16.equals(feature))
             throw new IllegalArgumentException("Unsupported dynamic feature");
         // Revised locators must not reuse old descriptors or deterministic misses.
         String cacheKey = switch (feature) {
-            case FeaturePolicy.LENS -> feature + ".controllers-v2";
+            case FeaturePolicy.LENS -> feature + ".controllers-v4";
             case FeaturePolicy.CAMERA_LENS -> feature + ".native-v1";
             default -> feature;
         };
-        if (!cacheKey.equals(feature) && stored.remove(feature) != null) dirty = true;
-        if (WalletPreviewCandidates.CACHE_FEATURE.equals(feature)
-                && stored.remove("wallet.preview-candidates-v1") != null) dirty = true;
         String saved = stored.getProperty(cacheKey);
         if (saved != null) {
             if (saved.isEmpty()) return List.of();
@@ -84,7 +80,6 @@ final class AppDexTargets implements AutoCloseable {
         List<Method> methods = switch (feature) {
             case FeaturePolicy.LENS -> findLens();
             case FeaturePolicy.CAMERA_LENS -> findCameraLens();
-            case WalletPreviewCandidates.CACHE_FEATURE -> findWalletPreviewCandidates();
             case ActionButtonLensBinding.CACHE_FEATURE -> findActionButtonLens();
             case ActionButtonLensBinding.CACHE_FEATURE_16 -> findActionButtonLens16();
             default -> throw new IllegalArgumentException("Unsupported dynamic feature");
@@ -106,7 +101,6 @@ final class AppDexTargets implements AutoCloseable {
     private static boolean valid(String feature, List<Method> methods) {
         if (ActionButtonLensBinding.CACHE_FEATURE.equals(feature)) return ActionButtonLensBinding.valid(methods);
         if (ActionButtonLensBinding.CACHE_FEATURE_16.equals(feature)) return ActionButtonLensBinding.valid16(methods);
-        if (WalletPreviewCandidates.CACHE_FEATURE.equals(feature)) return WalletPreviewCandidates.valid(methods);
         if (FeaturePolicy.CAMERA_LENS.equals(feature))
             return CameraLensBinding.valid(methods);
         if (methods.size() < 2 || methods.size() > 514) return false;
@@ -253,25 +247,6 @@ final class AppDexTargets implements AutoCloseable {
         }
         result.addAll(callers);
         return result;
-    }
-
-    private List<Method> findWalletPreviewCandidates() throws ReflectiveOperationException {
-        var constructors = bridge.findMethod(FindMethod.create().matcher(MethodMatcher.create().name("<init>")
-                .usingStrings(List.of("paymentCardInfo", "safePaymentCardInfo", "valuables"))));
-        if (constructors.isEmpty() || constructors.size() > 16) return List.of();
-        Set<Method> getters = new LinkedHashSet<>();
-        for (MethodData constructor : constructors)
-            for (Method method : constructor.getClassInstance(loader).getDeclaredMethods())
-                if (WalletPreviewCandidates.isModelGetter(method)) getters.add(method);
-        if (getters.isEmpty()) return List.of();
-        var found = bridge.findMethod(FindMethod.create().matcher(MethodMatcher.create()
-                .returnType("java.lang.Object").paramTypes("java.lang.Object")
-                .invokeMethods(MethodsMatcher.create().add(MethodMatcher.create()
-                        .declaredClass("android.app.KeyguardManager").name("isDeviceLocked").paramCount(0)))));
-        if (found.size() > 128) return List.of();
-        List<Method> callbacks = new ArrayList<>();
-        for (MethodData callback : found) callbacks.add(callback.getMethodInstance(loader));
-        return WalletPreviewCandidates.select(getters, callbacks);
     }
 
     private List<Method> findLens() throws ReflectiveOperationException {

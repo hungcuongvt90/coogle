@@ -2,7 +2,7 @@
 
 APK: JDK 17, Android SDK Platform 37.0, and Build Tools 36.0.0. Set `JAVA_HOME` and `ANDROID_HOME` (or `local.properties`), then run `bash gradlew :app:assembleRelease`. The APK contains only the `arm64-v8a` ABI; release builds enable R8 and resource shrinking.
 
-Companion module: Python 3, the same `JAVA_HOME` and `ANDROID_HOME`, and the local debug keystore. Run `python companion/build_combined.py`; this compiles the native resource overlay and creates `build/Coogle-Companion-1.3.4.zip`. Copy the updated ZIP to `app/src/main/assets/coogle-companion.zip` before building the APK.
+Companion module: Python 3, the same `JAVA_HOME` and `ANDROID_HOME`, and the local debug keystore. Run `python companion/build_combined.py`; this compiles the native resource overlay and creates `build/Coogle-Companion-1.3.8.zip`. Copy the generated ZIP to `app/src/main/assets/coogle-companion.zip` before building the APK.
 
 The APK is signed with the local Android debug keystore. The default debug certificate differs between computers.
 
