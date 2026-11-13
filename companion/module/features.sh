@@ -23,6 +23,14 @@ select_payload() {
     active="$MODDIR/$relative"; parked="$MODDIR/optional/$relative"
     if [ "$enabled" = 1 ]; then source=$parked; target=$active
     else source=$active; target=$parked; fi
+
+    # A failed pre-mount transition can leave an empty directory at the old
+    # location. It carries no payload and must not block the next transition.
+    for path in "$source" "$target"; do
+        if [ -d "$path" ] && [ -z "$(find "$path" -mindepth 1 -print -quit 2>/dev/null)" ]; then
+            rmdir "$path" 2>/dev/null || return 1
+        fi
+    done
     [ -e "$source" ] || return 0
     [ ! -e "$target" ] || { echo "Component path conflict: $relative" >&2; return 1; }
     mkdir -p "${target%/*}" && mv "$source" "$target" || return 1

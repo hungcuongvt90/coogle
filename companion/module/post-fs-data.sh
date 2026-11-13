@@ -7,7 +7,9 @@ rm -f "$MODDIR/applied-boot-id"
 load_features "$MODDIR/features.conf"
 if ! apply_features || ! prepare_google_mount "$MODDIR" || ! prepare_native_translation; then
     touch "$MODDIR/component-error" "$MODDIR/skip_mount"
-    hey=0
+    # Keep the requested switch in applied-features.conf. The failure marker
+    # already prevents setup.sh and boot-completed.sh from acting on it until
+    # the next successful mount preparation.
     save_features "$MODDIR/applied-features.conf"
     exit 1
 fi

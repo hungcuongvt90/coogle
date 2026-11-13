@@ -24,8 +24,8 @@ android {
         applicationId 'io.github.zopulus.coogle'
         minSdk 35
         targetSdk 36
-        versionCode 138
-        versionName '1.3.8'
+        versionCode 139
+        versionName '1.3.9'
         ndk { abiFilters 'arm64-v8a' }
     }
     buildTypes {
@@ -102,8 +102,9 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
     source files('../tests/SettingsUiStateTest.java')
     source files('../tests/WalletSettingsTest.java', '../tests/WalletPaymentCommandTest.java', '../tests/ScopeRestartTest.java')
     source files('../tests/CompanionControlTest.java', '../tests/CompanionUpgradeRegressionTest.java', '../tests/CameraLensEligibilityTest.java', '../tests/CameraNativeLensTest.java')
-    source files('../tests/CompanionSettingsTest.java', '../tests/OptionalAppHooksTest.java')
+    source files('../tests/CompanionSettingsTest.java', '../tests/OptionalAppHooksTest.java', '../tests/SearchBarBindingTest.java')
     source files('../tests/AssistantVoiceInstallTest.java')
+    source files('../tests/NavigationHookTest.java', '../tests/LauncherAssistantBindingTest.java')
     source files('../tests/GmsFeatureQueryTest.java')
     dependsOn 'compileReleaseJavaWithJavac'
     source files('../tests/DexTargetCacheTest.java', '../tests/LensBindingTest.java', '../tests/lens-stubs/com/google/apps/tiktok/account/AccountId.java', '../tests/LensHookLifecycleTest.java', '../tests/SignalModelHookLifecycleTest.java', '../tests/RoleReconciliationTest.java', '../tests/HookInstallRollbackTest.java', '../tests/HiddenCircleNoAssistantTest.java', '../tests/FeatureQueryTest.java', '../tests/ContextBindingCacheTest.java') +
@@ -123,7 +124,7 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
     targetCompatibility = '17'
     options.encoding = 'UTF-8'
 }
-['OptionalAppHooksTest', 'ActionButtonLensTest', 'WalletNativeGestureCommandTest', 'WalletNativeGestureTest', 'WalletNativeEntryHookTest', 'WalletDismissQueueTest', 'WalletKeyguardHookTest', 'WalletPaymentReadTest', 'WalletPackageIsolationTest', 'WalletSettingsTest', 'WalletPaymentCommandTest', 'ScopeRestartTest', 'SettingsUiStateTest', 'ScopeRequestsTest', 'CompanionUpgradeRegressionTest', 'CameraNativeLensTest', 'CameraLensEligibilityTest', 'GmsFeatureQueryTest', 'CompanionControlTest', 'CompanionSettingsTest', 'DexTargetCacheTest', 'LensBindingTest', 'LensHookLifecycleTest', 'SignalModelHookLifecycleTest', 'RoleReconciliationTest', 'AssistantVoiceInstallTest', 'HookInstallRollbackTest', 'HiddenCircleNoAssistantTest', 'FeatureQueryTest', 'ContextBindingCacheTest'].each { testName ->
+['NavigationHookTest', 'LauncherAssistantBindingTest', 'OptionalAppHooksTest', 'ActionButtonLensTest', 'WalletNativeGestureCommandTest', 'WalletNativeGestureTest', 'WalletNativeEntryHookTest', 'WalletDismissQueueTest', 'WalletKeyguardHookTest', 'WalletPaymentReadTest', 'WalletPackageIsolationTest', 'WalletSettingsTest', 'WalletPaymentCommandTest', 'ScopeRestartTest', 'SettingsUiStateTest', 'ScopeRequestsTest', 'CompanionUpgradeRegressionTest', 'CameraNativeLensTest', 'CameraLensEligibilityTest', 'GmsFeatureQueryTest', 'CompanionControlTest', 'CompanionSettingsTest', 'DexTargetCacheTest', 'LensBindingTest', 'LensHookLifecycleTest', 'SignalModelHookLifecycleTest', 'RoleReconciliationTest', 'AssistantVoiceInstallTest', 'HookInstallRollbackTest', 'HiddenCircleNoAssistantTest', 'FeatureQueryTest', 'ContextBindingCacheTest'].each { testName ->
     tasks.register("test${testName}", JavaExec) {
         dependsOn 'compileHookLifecycleTests'
         classpath = files(lifecycleTestClasses) + tasks.named('compileHookLifecycleTests').get().classpath
@@ -131,6 +132,8 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
     }
 }
 tasks.register('testHookLifecycle') {
+    dependsOn 'testNavigationHookTest', 'testLauncherAssistantBindingTest'
+    dependsOn 'testSettingsActivity'
     dependsOn 'testAssistantVoiceInstallTest'
     dependsOn 'testOptionalAppHooksTest'
     dependsOn 'testActionButtonLensTest'
@@ -153,6 +156,23 @@ tasks.register('testHookLifecycle') {
     dependsOn 'testCompanionControlTest'
     dependsOn 'testCompanionSettingsTest'
     dependsOn 'testDexTargetCacheTest', 'testLensHookLifecycleTest', 'testSignalModelHookLifecycleTest', 'testRoleReconciliationTest', 'testHookInstallRollbackTest', 'testHiddenCircleNoAssistantTest', 'testFeatureQueryTest', 'testContextBindingCacheTest'
+}
+
+// Keep Activity boundaries isolated from the hook lifecycle fixtures.
+def activityTestClasses = layout.buildDirectory.dir('activity-tests')
+tasks.register('compileSettingsActivityTest', JavaCompile) {
+    dependsOn 'compileHookLifecycleTests'
+    source files('../tests/SettingsActivityTest.java') + fileTree('../tests/activity-stubs') { include '**/*.java' }
+    classpath = files(lifecycleTestClasses) + tasks.named('compileHookLifecycleTests').get().classpath
+    destinationDirectory = activityTestClasses
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+    options.encoding = 'UTF-8'
+}
+tasks.register('testSettingsActivity', JavaExec) {
+    dependsOn 'compileSettingsActivityTest'
+    classpath = files(activityTestClasses) + tasks.named('compileSettingsActivityTest').get().classpath
+    mainClass = 'io.github.zopulus.coogle.SettingsActivityTest'
 }
 
 tasks.register('testRootShell', JavaExec) {

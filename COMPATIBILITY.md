@@ -8,6 +8,8 @@ Wallet preview hooks bind only to APKs whose full SHA-256 has been verified. Sta
 
 Live translation is declared through a companion-module system-feature XML file and a native provider-resource overlay. Before installation and startup, system `idmap2` checks whether the overlay maps to the current framework without bypassing overlay-policy checks. If it is incompatible, only this module's live-translation declaration is disabled; it can recover on the next startup after compatibility returns. The check cannot guarantee that other overlays will not affect final loading, and it does not remove declarations from other modules. Startup status checks verify both the provider and the system capability without a resident polling loop.
 
+When a selected metamodule backend (for example, NoMount) cannot expose static product-overlay paths to `idmap2`, Coogle parks only the live-translation overlay and capability declaration. Google system-app mounting continues, and status reports live translation as paused for mount compatibility instead of risking a `system_server` restart.
+
 The companion installer checks Google APK discovery and the copy result for every base APK and split APK. Installation stops on failure instead of creating a replacement mount with missing APKs.
 
 The existing power-assistant bridge has a secondary-user limitation: settings reads and observers are not consistently scoped to the current user and may write the primary-user setting into a secondary-user state. Single-user use is unaffected. A multi-user fix requires coordinated changes to settings synchronization and observers and separate validation; this issue was not introduced by 1.3.1.

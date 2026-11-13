@@ -55,7 +55,7 @@ final class AppDexTargets implements AutoCloseable {
             throw new IllegalArgumentException("Unsupported dynamic feature");
         // Revised locators must not reuse old descriptors or deterministic misses.
         String cacheKey = switch (feature) {
-            case FeaturePolicy.LENS -> feature + ".controllers-v4";
+            case FeaturePolicy.LENS -> feature + ".controllers-v5";
             case FeaturePolicy.CAMERA_LENS -> feature + ".native-v1";
             default -> feature;
         };
@@ -73,10 +73,7 @@ final class AppDexTargets implements AutoCloseable {
             stored.remove(cacheKey);
             dirty = true;
         }
-        if (bridge == null) {
-            loadNative();
-            bridge = DexKitBridge.create(apkPath);
-        }
+        bridge();
         List<Method> methods = switch (feature) {
             case FeaturePolicy.LENS -> findLens();
             case FeaturePolicy.CAMERA_LENS -> findCameraLens();
@@ -96,6 +93,54 @@ final class AppDexTargets implements AutoCloseable {
         stored.setProperty(cacheKey, String.join("\n", descriptors));
         dirty = true;
         return methods;
+    }
+
+    SearchBarBinding resolveSearchBar() throws ReflectiveOperationException {
+        String cacheKey = FeaturePolicy.SEARCH_BAR + ".features-v1";
+        String saved = stored.getProperty(cacheKey);
+        if (saved != null) {
+            if (saved.isEmpty()) return null;
+            try {
+                SearchBarBinding binding = SearchBarBinding.parse(loader, saved);
+                if (binding != null) return binding;
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError invalid) {
+                // APK identity and member signatures both have to match.
+            }
+            stored.remove(cacheKey);
+            dirty = true;
+        }
+        SearchBarBinding binding = SearchBarBinding.find(bridge(), loader);
+        stored.setProperty(cacheKey, binding == null ? "" : binding.serialize());
+        dirty = true;
+        return binding;
+    }
+
+    NavigationBinding resolveNavigation() throws ReflectiveOperationException {
+        String cacheKey = FeaturePolicy.NAVIGATION + ".gates-v1";
+        String saved = stored.getProperty(cacheKey);
+        if (saved != null) {
+            if (saved.isEmpty()) return null;
+            try {
+                NavigationBinding binding = NavigationBinding.parse(loader, saved);
+                if (binding != null) return binding;
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError invalid) {
+                // Rebind members when a cached signature no longer matches.
+            }
+            stored.remove(cacheKey);
+            dirty = true;
+        }
+        NavigationBinding binding = NavigationBinding.find(bridge(), loader);
+        stored.setProperty(cacheKey, binding == null ? "" : binding.serialize());
+        dirty = true;
+        return binding;
+    }
+
+    private DexKitBridge bridge() {
+        if (bridge == null) {
+            loadNative();
+            bridge = DexKitBridge.create(apkPath);
+        }
+        return bridge;
     }
 
     private static boolean valid(String feature, List<Method> methods) {

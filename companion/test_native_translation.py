@@ -2,16 +2,19 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+import os
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).parent
-BASH = 'C:/Program Files/Git/bin/bash.exe'
+BASH = 'C:/Program Files/Git/bin/bash.exe' if os.name == 'nt' else '/bin/bash'
 FEATURE = 'system/etc/permissions/coogle-live-translate.xml'
 OVERLAY = 'system/product/overlay/CoogleContextualSearch/CoogleContextualSearch.apk'
 
 
 def unix(path):
     value = path.as_posix()
+    if os.name != 'nt':
+        return value
     return '/' + value[0].lower() + value[2:]
 
 
@@ -53,6 +56,33 @@ class NativeTranslationTest(unittest.TestCase):
             self.assertEqual((work/FEATURE).read_bytes(), b'preserved')
             self.assertFalse((work/'translation-error').exists())
             self.assertFalse((work/'native-translate.idmap.tmp').exists())
+
+    def test_metamodule_parks_overlay_and_capability_without_aborting_google_mount(self):
+        for marker in (b'metamodule=true\n', b'metamodule=1\n'):
+            with self.subTest(marker=marker), tempfile.TemporaryDirectory() as directory:
+                work = Path(directory)
+                backend = work/'metamodule'
+                backend.mkdir()
+                (backend/'module.prop').write_bytes(b'id=nomount\n' + marker)
+                for name in (FEATURE, OVERLAY, 'system/priv-app/GoogleQuickSearchBox/base.apk'):
+                    path = work/name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(b'preserved')
+                script = (ROOT/'module/native-translate.sh').read_text(encoding='utf-8').replace('/system/bin/idmap2', 'idmap2')
+                (work/'native-translate.sh').write_bytes(script.encode())
+                command = (f'MODDIR="{unix(work)}"; COOGLE_METAMODULE="{unix(backend)}"; '
+                           f'. "{unix(ROOT / "module/features.sh")}"; '
+                           f'. "{unix(work / "native-translate.sh")}"; '
+                           'prepare_native_translation; mkdir -p "$MODDIR/system/product/overlay/CoogleContextualSearch"; '
+                           'load_features /dev/null; apply_features; prepare_native_translation')
+                subprocess.run([BASH, '-c', command], check=True, capture_output=True)
+                self.assertFalse((work/OVERLAY).exists())
+                self.assertFalse((work/'system/product/overlay/CoogleContextualSearch').exists())
+                self.assertFalse((work/FEATURE).exists())
+                self.assertEqual((work/'optional'/OVERLAY).read_bytes(), b'preserved')
+                self.assertEqual((work/'optional'/FEATURE).read_bytes(), b'preserved')
+                self.assertEqual((work/'translation-error').read_text(), 'overlay-unavailable\n')
+                self.assertTrue((work/'system/priv-app/GoogleQuickSearchBox/base.apk').exists())
 
     def test_status_requires_both_native_capability_and_provider(self):
         for capability, provider, ready in ((True, 'com.google.android.googlequicksearchbox', True),

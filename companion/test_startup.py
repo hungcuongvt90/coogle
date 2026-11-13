@@ -14,6 +14,25 @@ def unix(path):
 
 
 class StartupTest(unittest.TestCase):
+    def test_failed_preparation_preserves_requested_hey_switch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = Path(directory)
+            (work/'features.sh').write_text(
+                'load_features() { hey=0; while IFS= read -r line; do [ "$line" = hey=1 ] && hey=1; done < "$1"; }\n'
+                'save_features() { printf "hey=%s\\n" "$hey" > "$1"; }\n'
+                'apply_features() { return 0; }\n', encoding='utf-8')
+            (work/'native-translate.sh').write_text('prepare_native_translation() { return 1; }\n', encoding='utf-8')
+            (work/'mount-google.sh').write_text('prepare_google_mount() { return 0; }\n', encoding='utf-8')
+            (work/'features.conf').write_text('hey=1\n', encoding='utf-8')
+            script = (ROOT/'module/post-fs-data.sh').read_text(encoding='utf-8').replace(
+                'MODDIR=${0%/*}', f'MODDIR="{unix(work)}"')
+            run = work/'post-fs-data.sh'; run.write_text(script, encoding='utf-8')
+            result = subprocess.run([str(BASH), str(run)], capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual((work/'applied-features.conf').read_text(), 'hey=1\n')
+            self.assertTrue((work/'component-error').exists())
+            self.assertTrue((work/'skip_mount').exists())
+
     def test_boot_wait_and_setup_only_for_enabled_healthy_support(self):
         for enabled, failed, expected in ((False, False, 'status\n'),
                                           (True, False, 'sleep:30\nsetup\nstatus\n'),
