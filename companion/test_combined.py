@@ -39,6 +39,7 @@ class CombinedTest(unittest.TestCase):
             self.assertIn(b'author=zopulus\n',z.read('module.prop'))
             self.assertIn(b'id=coogle_companion\n',z.read('module.prop'))
             self.assertIn(b'name=Coogle Companion\n',z.read('module.prop'))
+            self.assertIn(b'description=[\xe2\x8f\xb3Pending reboot check]\n', z.read('module.prop'))
             self.assertNotIn('Google系统应用 + Hotword + DSP'.encode(), z.read('module.prop'))
             self.assertNotIn('Google系统应用 + Hotword + DSP'.encode(), z.read('status.sh'))
             installer = z.read('customize.sh')
@@ -55,6 +56,8 @@ class CombinedTest(unittest.TestCase):
             for removed in ('rescue.sh','diagnose.sh','payload.sha256','action.sh'):
                 self.assertNotIn(removed,z.namelist())
             self.assertIn(b'cat > /dev/null',z.read('boot-completed.sh'))
+            self.assertIn('repair-play-store.sh', z.namelist())
+            self.assertIn(b'repair-play-store.sh', z.read('boot-completed.sh'))
             self.assertIn(b'Existing model 101 retained',z.read('setup.sh'))
             self.assertIn(b'am compat reset',z.read('uninstall.sh'))
             self.assertNotIn(b'getevent', installer)

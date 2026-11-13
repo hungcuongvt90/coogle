@@ -17,7 +17,7 @@ public final class SettingsUiStateTest {
             check(normal.equals(status.getSummary()), "Normal installation summary altered");
             check(state(status, true, "").getCompanionSummary().equals(normal), "Background refresh changed the card summary");
             check(state(status, false, "The operation timed out. Try again.").getCompanionSummary().equals("Check failed: The operation timed out. Try again."), "Detection error concealed or old status leaked");
-            check(state(status, false, "操作超时，请重试。").getCompanion() == status, "Detection failure altered the last known installation state");
+            check(state(status, false, "The operation timed out. Try again.").getCompanion() == status, "Detection failure altered the last known installation state");
             CoogleState installing = new CoogleState(true, Map.of(), true, false, false,
                     "", status, false, "", false, DialogKind.NONE, "");
             check(installing.getCompanionSummary().equals(normal), "Installation replaced the last known status");

@@ -6,7 +6,7 @@ final class CompanionSettings {
     static boolean shouldCheck(android.content.SharedPreferences settings) { return true; }
     String refresh(android.content.SharedPreferences settings) throws java.io.IOException {
         checks++;
-        if (fail) throw new java.io.IOException("模拟暂时检测失败");
+        if (fail) throw new java.io.IOException("Temporary status check failed");
         return "READY";
     }
 }

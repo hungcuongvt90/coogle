@@ -21,7 +21,7 @@ public final class RootShellTest {
         };
         expect(broken, RootShell.Reason.EXECUTION);
         for (RootShell.Reason reason : RootShell.Reason.values())
-            check(new RootShell.Failure(reason).getMessage().matches(".*[\\u4e00-\\u9fff].*"), "Untranslated root failure");
+            check(!new RootShell.Failure(reason).getMessage().matches(".*[\\u3400-\\u4dbf\\u4e00-\\u9fff\\uf900-\\ufaff].*"), "Root failure remained untranslated");
         System.out.println("PASS: root refusal, command failure, timeout cleanup, broken output, and intact settings protocol");
     }
     private static void expect(Result process, RootShell.Reason reason) throws Exception {

@@ -5,7 +5,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT.parent / 'build/Coogle-Companion-1.3.9.zip'
-PAYLOAD_REVISION = 3
+PAYLOAD_REVISION = 6
 
 def payload():
     files = {}
@@ -21,18 +21,17 @@ def payload():
                 assert '..' not in Path(info.filename).parts
                 assert info.filename not in files
                 files[info.filename] = systemizer.read(info)
-    for name in ('patch-audio.awk', 'prepare-audio.sh', 'status.sh', 'hotword-status.awk'):
+    for name in ('status.sh', 'hotword-status.awk'):
         path = ROOT/'integration'/name
         files[name] = path.read_bytes().replace(b'\r\n', b'\n')
-    for name in ('boot-completed.sh', 'setup.sh', 'uninstall.sh', 'features.sh', 'post-fs-data.sh', 'native-translate.sh', 'copy-google.sh', 'mount-google.sh'):
+    for name in ('boot-completed.sh', 'repair-play-store.sh', 'setup.sh', 'uninstall.sh', 'features.sh', 'post-fs-data.sh', 'native-translate.sh', 'copy-google.sh', 'mount-google.sh'):
         files[name] = (ROOT/'module'/name).read_bytes().replace(b'\r\n', b'\n')
     installer = '''#!/system/bin/sh
 . "$MODPATH/copy-google.sh"
 set_perm_recursive "$MODPATH/system" 0 0 0755 0644
-for script in boot-completed.sh setup.sh uninstall.sh prepare-audio.sh status.sh features.sh post-fs-data.sh native-translate.sh copy-google.sh mount-google.sh; do
+for script in boot-completed.sh repair-play-store.sh setup.sh uninstall.sh status.sh features.sh post-fs-data.sh native-translate.sh copy-google.sh mount-google.sh; do
     set_perm "$MODPATH/$script" 0 0 0755
 done
-/system/bin/sh "$MODPATH/prepare-audio.sh"
 . "$MODPATH/features.sh"
 load_features /dev/null
 if grep -q '^controlVersion=1$' /data/adb/modules/coogle_companion/module.prop 2>/dev/null; then
@@ -48,7 +47,7 @@ ui_print "Hey Google follows the Coogle switch; live translation enables automat
 '''
     files['customize.sh'] = installer.replace('\r\n', '\n').encode()
     files['module.prop'] = ('id=coogle_companion\nname=Coogle Companion\nversion=1.3.9\nversionCode=139\ncontrolVersion=1\n'
-                            f'payloadRevision={PAYLOAD_REVISION}\nauthor=zopulus\ndescription=[⏳待重启检测]\n').encode()
+                            f'payloadRevision={PAYLOAD_REVISION}\nauthor=zopulus\ndescription=[⏳Pending reboot check]\n').encode()
     return files
 
 def build():
