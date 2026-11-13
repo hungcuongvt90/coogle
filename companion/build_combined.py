@@ -5,7 +5,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT.parent / 'build/Coogle-Companion-1.3.9.zip'
-PAYLOAD_REVISION = 6
+PAYLOAD_REVISION = 7
 
 def payload():
     files = {}
