@@ -10,28 +10,29 @@ public final class CompanionUpgradeRegressionTest {
         Path root = Files.createTempDirectory("coogle-pr6-upgrade");
         Path active = root.resolve("active"), staged = root.resolve("staged");
         int failures = 0;
+        String current = "controlVersion=1\npayloadRevision=" + CompanionInstaller.REQUIRED_PAYLOAD_REVISION + "\n";
         try {
             failures += expect(active, staged, "MISSING", "fresh install before staging");
             fixture(active, "controlVersion=1\nversion=1.3.2\nversionCode=132\n");
             failures += expect(active, staged, "UPDATE_REQUIRED", "installed released 1.3.2 (no payload revision)");
             fixture(staged, "controlVersion=1\nversion=1.3.2\nversionCode=132\n");
             failures += expect(active, staged, "UPDATE_REQUIRED", "staged old 1.3.2 must not hide missing update");
-            fixture(staged, "controlVersion=1\npayloadRevision=3\n");
+            fixture(staged, current);
             failures += expect(active, staged, "PENDING", "new payload staged over old active module");
             try(var files=Files.walk(staged)) { for(Path p:files.sorted(Comparator.reverseOrder()).toList()) Files.delete(p); }
-            fixture(active, "controlVersion=1\npayloadRevision=3\n");
+            fixture(active, current);
             failures += expect(active, staged, "READY", "new payload after reboot");
-            for(String revision:new String[]{"1","2","bad","-1","2\npayloadRevision=3"}) {
+            for(String revision:new String[]{"1","2","3","6","7","bad","-1","2\npayloadRevision=3"}) {
                 fixture(active,"controlVersion=1\npayloadRevision="+revision+"\n");
                 failures += expect(active,staged,"UPDATE_REQUIRED","old/invalid revision "+revision.replace('\n',' '));
             }
-            fixture(active,"controlVersion=1\npayloadRevision=4\n");
+            fixture(active,"controlVersion=1\npayloadRevision=" + (CompanionInstaller.REQUIRED_PAYLOAD_REVISION + 1) + "\n");
             failures += expect(active,staged,"READY","newer compatible payload must not be downgraded");
             Files.delete(active.resolve("mount-google.sh"));
             failures += expect(active,staged,"UPDATE_REQUIRED","required mount helper missing");
-            fixture(active,"controlVersion=2\npayloadRevision=3\n");
+            fixture(active,current.replace("controlVersion=1", "controlVersion=2"));
             failures += expect(active,staged,"UPDATE_REQUIRED","incompatible control protocol");
-            fixture(active,"controlVersion=1\npayloadRevision=3\n");
+            fixture(active,current);
             Files.createFile(active.resolve("disable"));
             failures += expect(active, staged, "DISABLED", "disabled current payload");
         } finally {
@@ -54,12 +55,14 @@ public final class CompanionUpgradeRegressionTest {
                 .replace("/proc/sys/kernel/random/boot_id",unix(active.getParent().resolve("boot-id")))
                 .replace("/data/adb/modules_update/coogle_companion",unix(staged));
         Files.writeString(active.getParent().resolve("boot-id"),"current-boot\n");
-        Process p=new ProcessBuilder("C:/Program Files/Git/bin/bash.exe","-c",command).redirectErrorStream(true).start();
+        Process p=new ProcessBuilder(System.getenv().getOrDefault("COOGLE_TEST_BASH",
+                System.getProperty("os.name").startsWith("Windows") ? "C:/Program Files/Git/bin/bash.exe" : "/bin/bash"),
+                "-c",command).redirectErrorStream(true).start();
         String actual=new String(p.getInputStream().readAllBytes(),java.nio.charset.StandardCharsets.UTF_8).trim();
         if(p.waitFor()!=0) throw new AssertionError(actual);
         boolean pass=expected.equals(actual);
         System.out.println((pass?"PASS":"FAIL")+": "+name+" expected="+expected+" actual="+actual);
         return pass?0:1;
     }
-    private static String unix(Path path) { String s=path.toString().replace('\\','/');return "/"+Character.toLowerCase(s.charAt(0))+s.substring(2); }
+    private static String unix(Path path) { String s=path.toString().replace('\\','/');return s.startsWith("/") ? s : "/"+Character.toLowerCase(s.charAt(0))+s.substring(2); }
 }

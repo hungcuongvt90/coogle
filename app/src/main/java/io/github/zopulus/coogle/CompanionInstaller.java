@@ -9,7 +9,7 @@ import static io.github.zopulus.coogle.RootShell.run;
 /** Root is used only after the user asks to check/install the companion. */
 public final class CompanionInstaller {
     private static final String DIR="/data/adb/modules/coogle_companion";
-    static final int REQUIRED_PAYLOAD_REVISION = 7;
+    static final int REQUIRED_PAYLOAD_REVISION = 8;
     public static String check() throws Exception {
         return state(run(statusCommand(),20));
     }

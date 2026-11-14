@@ -5,6 +5,17 @@ import zipfile
 from build_combined import ROOT, OUT
 
 class CombinedTest(unittest.TestCase):
+    def test_companion_release_matches_apk_version(self):
+        import re
+        gradle = (ROOT.parent/'app/build.gradle').read_text(encoding='utf-8')
+        version = re.search(r"versionName '([^']+)'", gradle).group(1)
+        code = re.search(r'versionCode (\d+)', gradle).group(1)
+        self.assertEqual(f'COS16-Coogle-Companion-{version}.zip', OUT.name)
+        with zipfile.ZipFile(OUT) as archive:
+            props = archive.read('module.prop').decode()
+            self.assertIn(f'\nversion={version}\n', props)
+            self.assertIn(f'\nversionCode={code}\n', props)
+
     def test_supplied_systemizer_used_without_bundled_google_apks(self):
         with zipfile.ZipFile(OUT) as z, zipfile.ZipFile(ROOT/'googlequicksearchbox-systemizer.zip') as source:
             marker='system/priv-app/GoogleQuickSearchBox/.replace'
@@ -57,6 +68,9 @@ class CombinedTest(unittest.TestCase):
                 self.assertNotIn(removed,z.namelist())
             self.assertIn(b'cat > /dev/null',z.read('boot-completed.sh'))
             self.assertIn('repair-play-store.sh', z.namelist())
+            self.assertIn('runtime-translate.sh', z.namelist())
+            self.assertIn(b'runtime-translate.sh', z.read('boot-completed.sh'))
+            self.assertIn(b'com.android.shell:CoogleContextualSearch', z.read('uninstall.sh'))
             self.assertIn(b'repair-play-store.sh', z.read('boot-completed.sh'))
             self.assertIn(b'Existing model 101 retained',z.read('setup.sh'))
             self.assertIn(b'am compat reset',z.read('uninstall.sh'))

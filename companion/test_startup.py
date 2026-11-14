@@ -77,14 +77,14 @@ class StartupTest(unittest.TestCase):
                 (work/'applied-features.conf').write_bytes(f'hey={int(enabled)}\n'.encode())
                 if failed:
                     (work/'component-error').touch()
-                for name in ('repair-play-store', 'setup', 'status'):
+                for name in ('runtime-translate', 'repair-play-store', 'setup', 'status'):
                     (work/f'{name}.sh').write_bytes(f'printf "{name}\\n" >> "{unix(work)}/calls"\n'.encode())
                 script = (ROOT/'module/boot-completed.sh').read_text(encoding='utf-8').replace(
                     '/system/bin/sh', f'"{unix(BASH)}"').replace('MODDIR=${0%/*}', f'MODDIR="{unix(work)}"')
                 mocks = f'sleep() {{ printf "sleep:%s\\n" "$1" >> "{unix(work)}/calls"; }};\n'
                 (work/'boot.sh').write_bytes((mocks+script).encode())
                 subprocess.run([str(BASH), str(work/'boot.sh')], check=True, capture_output=True)
-                expected = 'repair-play-store\n' + expected
+                expected = 'runtime-translate\nrepair-play-store\n' + expected
                 self.assertEqual((work/'calls').read_text(), expected)
 
     def test_failed_component_status_skips_android_queries_and_unchanged_writes(self):

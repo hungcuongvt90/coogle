@@ -1,10 +1,10 @@
 package io.github.zopulus.coogle;
 
-/** The only platform eligibility requirement is ColorOS major version 17. */
+/** Shared platform eligibility for the supported ColorOS 16 and 17 hook routes. */
 public final class SystemCompatibility {
     private SystemCompatibility() { }
 
-    public static boolean isColorOs17() {
+    public static boolean isSupportedColorOs() {
         try {
             Class<?> properties = Class.forName("android.os.SystemProperties");
             String version = (String) properties.getMethod("get", String.class)
@@ -20,6 +20,6 @@ public final class SystemCompatibility {
     }
 
     static boolean matchesVersion(String value) {
-        return value != null && value.trim().matches("(?i)V?17(?:\\.[0-9]+)*");
+        return value != null && value.trim().matches("(?i)V?(?:16|17)(?:\\.[0-9]+)*");
     }
 }

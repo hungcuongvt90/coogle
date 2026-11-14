@@ -15,7 +15,8 @@ public final class CompanionControlTest {
             Files.writeString(active.resolve("module.prop"), "id=coogle_companion\n");
             check(run(true, active, pending).equals("UPDATE_REQUIRED"), "Old module accepted as controllable");
             check(!Files.exists(active.resolve("features.conf")), "Old module was modified");
-            Files.writeString(active.resolve("module.prop"), "id=coogle_companion\ncontrolVersion=1\npayloadRevision=3\n");
+            Files.writeString(active.resolve("module.prop"), "id=coogle_companion\ncontrolVersion=1\npayloadRevision="
+                    + CompanionInstaller.REQUIRED_PAYLOAD_REVISION + "\n");
             Files.writeString(active.resolve("features.sh"), "fixture\n");
             Files.writeString(active.resolve("mount-google.sh"), "fixture\n");
             Files.writeString(active.resolve("applied-features.conf"), "hey=0\n");
@@ -87,13 +88,16 @@ public final class CompanionControlTest {
                 .replace("/data/adb/modules/coogle_companion", unix(active))
                 .replace("/data/adb/modules_update/coogle_companion", unix(pending));
         Files.writeString(active.getParent().resolve("boot-id"), "current-boot\n");
-        Process process = new ProcessBuilder("C:/Program Files/Git/bin/bash.exe", "-c", command).redirectErrorStream(true).start();
+        Process process = new ProcessBuilder(System.getenv().getOrDefault("COOGLE_TEST_BASH",
+                System.getProperty("os.name").startsWith("Windows") ? "C:/Program Files/Git/bin/bash.exe" : "/bin/bash"),
+                "-c", command).redirectErrorStream(true).start();
         String result = new String(process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).trim();
         if (process.waitFor() != 0) throw new AssertionError(result);
         return result;
     }
     private static String unix(Path path) {
         String value = path.toString().replace('\\', '/');
+        if (value.startsWith("/")) return value;
         return "/" + Character.toLowerCase(value.charAt(0)) + value.substring(2);
     }
     private static void check(boolean condition, String message) { if (!condition) throw new AssertionError(message); }

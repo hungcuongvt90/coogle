@@ -2,7 +2,11 @@
 
 APK: JDK 17, Android SDK Platform 37.0, and Build Tools 36.0.0. Set `JAVA_HOME` and `ANDROID_HOME` (or `local.properties`), then run `bash gradlew :app:assembleRelease`. The APK contains only the `arm64-v8a` ABI; release builds enable R8 and resource shrinking.
 
-Companion module: Python 3, the same `JAVA_HOME` and `ANDROID_HOME`, and the local debug keystore. Run `python companion/build_combined.py`; this compiles the native resource overlay and creates `build/Coogle-Companion-1.3.8.zip`. Copy the generated ZIP to `app/src/main/assets/coogle-companion.zip` before building the APK.
+Companion module: Python 3, the same `JAVA_HOME` and `ANDROID_HOME`, and the local debug keystore. Run `python companion/build_combined.py`; this compiles the native resource overlay and creates `build/COS16-Coogle-Companion-1.3.10.zip`. Copy the generated ZIP to `app/src/main/assets/coogle-companion.zip` before building the APK.
+
+After assembling the APK, run `python3 package_release.py`. It reads the built APK's version and creates `build/releases/<version>/COS16-Coogle-<version>.apk`, `COS16-Coogle-Companion-<version>.zip`, and `SHA256SUMS`. The standalone companion is extracted from the APK, so both packages contain the same payload. `build.ps1` runs this packaging step automatically; CI uses the same script with `--output-dir dist`.
+
+Packaging regression: run `python3 -m unittest discover -s tests -p test_package_release.py`.
 
 The APK is signed with the local Android debug keystore. The default debug certificate differs between computers.
 
@@ -14,6 +18,6 @@ Camera native eligibility: run `python tests/run_camera_dex_test.py --adb <adb p
 
 ## GitHub Actions
 
-`.github/workflows/build.yml` builds the companion module, embeds it into the APK assets, and assembles the release APK, so the single artifact installs everything: the app offers to install the embedded companion through KernelSU from its status card. Tag pushes (`v*`) also publish a GitHub Release with the APK and the standalone companion ZIP.
+`.github/workflows/build.yml` builds the companion module, embeds it into the APK assets, and assembles the release APK, so the single artifact installs everything: the app offers to install the embedded companion through KernelSU from its status card. Local and CI downloads use the `COS16-` prefix to distinguish this fork from upstream. Tag pushes (`v*`) publish a GitHub prerelease with the versioned APK, standalone companion ZIP, and checksums.
 
 For a stable CI signature that matches local debug builds, set these repository secrets: `COOGLE_KEYSTORE_BASE64` (base64 of the keystore, for example your `~/.android/debug.keystore`), `COOGLE_STORE_PASSWORD`, `COOGLE_KEY_ALIAS`, and `COOGLE_KEY_PASSWORD` (`android`/`androiddebugkey`/`android` for the debug keystore). Generate the value with `base64 -i ~/.android/debug.keystore | pbcopy` (macOS) or `base64 -w0 ~/.android/debug.keystore` (Linux/WSL). Without the secrets, CI signs with a runner-generated debug keystore, which differs between runs.

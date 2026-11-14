@@ -4,8 +4,8 @@ import stat
 import zipfile
 
 ROOT = Path(__file__).resolve().parent
-OUT = ROOT.parent / 'build/Coogle-Companion-1.3.10.zip'
-PAYLOAD_REVISION = 7
+OUT = ROOT.parent / 'build/COS16-Coogle-Companion-1.3.10.zip'
+PAYLOAD_REVISION = 8
 
 def payload():
     files = {}
@@ -24,12 +24,12 @@ def payload():
     for name in ('status.sh', 'hotword-status.awk'):
         path = ROOT/'integration'/name
         files[name] = path.read_bytes().replace(b'\r\n', b'\n')
-    for name in ('boot-completed.sh', 'repair-play-store.sh', 'setup.sh', 'uninstall.sh', 'features.sh', 'post-fs-data.sh', 'native-translate.sh', 'copy-google.sh', 'mount-google.sh'):
+    for name in ('boot-completed.sh', 'repair-play-store.sh', 'runtime-translate.sh', 'setup.sh', 'uninstall.sh', 'features.sh', 'post-fs-data.sh', 'native-translate.sh', 'copy-google.sh', 'mount-google.sh'):
         files[name] = (ROOT/'module'/name).read_bytes().replace(b'\r\n', b'\n')
     installer = '''#!/system/bin/sh
 . "$MODPATH/copy-google.sh"
 set_perm_recursive "$MODPATH/system" 0 0 0755 0644
-for script in boot-completed.sh repair-play-store.sh setup.sh uninstall.sh status.sh features.sh post-fs-data.sh native-translate.sh copy-google.sh mount-google.sh; do
+for script in boot-completed.sh repair-play-store.sh runtime-translate.sh setup.sh uninstall.sh status.sh features.sh post-fs-data.sh native-translate.sh copy-google.sh mount-google.sh; do
     set_perm "$MODPATH/$script" 0 0 0755
 done
 . "$MODPATH/features.sh"
@@ -42,7 +42,7 @@ MODDIR=$MODPATH
 apply_features || abort "Cannot prepare selected components"
 . "$MODPATH/native-translate.sh"
 prepare_native_translation || abort "Cannot prepare native translation configuration"
-ui_print "Google system app, enrollment and DSP support combined. Reboot required."
+ui_print "Google system app, enrollment and software hotword support combined. Reboot required."
 ui_print "Hey Google follows the Coogle switch; live translation enables automatically after reboot."
 '''
     files['customize.sh'] = installer.replace('\r\n', '\n').encode()

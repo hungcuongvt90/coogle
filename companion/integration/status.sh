@@ -33,6 +33,12 @@ else
     if [ "$provider" = com.google.android.googlequicksearchbox ] && [ "$capability" = true ] &&
         [ ! -f "$MODDIR/translation-error" ]; then
         translation='✅Live translation configuration active'
+    elif grep -qx 'capability-pending' "$MODDIR/translation-error" 2>/dev/null; then
+        translation='⏳Live translation capability pending module activation'
+    elif grep -qx 'runtime-pending' "$MODDIR/translation-error" 2>/dev/null; then
+        translation='⏳Live translation runtime overlay pending'
+    elif grep -qx 'runtime-overlay-failed' "$MODDIR/translation-error" 2>/dev/null; then
+        translation='⚠️Live translation runtime overlay failed'
     elif grep -qx 'overlay-unavailable' "$MODDIR/translation-error" 2>/dev/null; then
         translation='⏸️Live translation paused for mount compatibility'
     elif [ -f "$MODDIR/translation-error" ]; then

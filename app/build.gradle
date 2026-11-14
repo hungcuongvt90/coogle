@@ -132,6 +132,8 @@ tasks.register('compileHookLifecycleTests', JavaCompile) {
     }
 }
 tasks.register('testHookLifecycle') {
+    dependsOn 'testSystemCompatibilityTest', 'testSystemCompatibilityDispatchTest'
+    dependsOn 'testNavigationColorOs16'
     dependsOn 'testNavigationHookTest', 'testLauncherAssistantBindingTest'
     dependsOn 'testSettingsActivity'
     dependsOn 'testAssistantVoiceInstallTest'
@@ -156,6 +158,51 @@ tasks.register('testHookLifecycle') {
     dependsOn 'testCompanionControlTest'
     dependsOn 'testCompanionSettingsTest'
     dependsOn 'testDexTargetCacheTest', 'testLensHookLifecycleTest', 'testSignalModelHookLifecycleTest', 'testRoleReconciliationTest', 'testHookInstallRollbackTest', 'testHiddenCircleNoAssistantTest', 'testFeatureQueryTest', 'testContextBindingCacheTest'
+}
+
+// Exercise platform dispatch without loading unrelated hook fixtures.
+def compatibilityTestClasses = layout.buildDirectory.dir('system-compatibility-tests')
+tasks.register('compileSystemCompatibilityTests', JavaCompile) {
+    dependsOn 'compileReleaseJavaWithJavac'
+    source files('../tests/SystemCompatibilityTest.java', '../tests/SystemCompatibilityDispatchTest.java',
+        '../tests/lifecycle-stubs/android/os/SystemProperties.java',
+        '../tests/lifecycle-stubs/io/github/libxposed/api/XposedModule.java')
+    classpath = tasks.named('compileHookLifecycleTests').get().classpath
+    destinationDirectory = compatibilityTestClasses
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+    options.encoding = 'UTF-8'
+}
+['SystemCompatibilityTest', 'SystemCompatibilityDispatchTest'].each { testName ->
+    tasks.register("test${testName}", JavaExec) {
+        dependsOn 'compileSystemCompatibilityTests'
+        classpath = files(compatibilityTestClasses) + tasks.named('compileSystemCompatibilityTests').get().classpath
+        mainClass = "io.github.zopulus.coogle.${testName}"
+    }
+}
+
+// Keep firmware-specific navigation fixtures separate from other hook tests.
+['NavigationColorOs16Test', 'NavigationHookTest'].each { testName ->
+    def fixtureClasses = layout.buildDirectory.dir("navigation-compatibility-tests/${testName}")
+    def compileFixture = tasks.register("compile${testName}", JavaCompile) {
+        dependsOn 'compileReleaseJavaWithJavac'
+        source files("../tests/${testName}.java", '../tests/lifecycle-stubs/io/github/zopulus/coogle/HookInstaller.java')
+        if (testName == 'NavigationColorOs16Test') {
+            source fileTree('../tests/navigation16-stubs') { include '**/*.java' }
+        } else {
+            source files('../tests/lifecycle-stubs/com/android/launcher3/circlesearch/OplusHideNavHandleController.java')
+        }
+        classpath = tasks.named('compileHookLifecycleTests').get().classpath
+        destinationDirectory = fixtureClasses
+        sourceCompatibility = '17'
+        targetCompatibility = '17'
+        options.encoding = 'UTF-8'
+    }
+    tasks.register(testName == 'NavigationColorOs16Test' ? 'testNavigationColorOs16' : 'testRenamedNavigation', JavaExec) {
+        dependsOn compileFixture
+        classpath = files(fixtureClasses) + compileFixture.get().classpath
+        mainClass = "io.github.zopulus.coogle.${testName}"
+    }
 }
 
 // Keep Activity boundaries isolated from the hook lifecycle fixtures.

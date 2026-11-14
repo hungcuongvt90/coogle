@@ -11,7 +11,7 @@
 # Without the secrets the build falls back to a runner-generated debug keystore;
 # such APKs still install, but each CI run has a different signature.
 #
-# Tag pushes (v*) additionally publish a GitHub Release with the APK and the
+# Tag pushes (v*) additionally publish a GitHub prerelease with the APK and the
 # standalone companion ZIP.
 
 name: Build release APK
@@ -80,7 +80,7 @@ jobs:
       - name: Build companion module and embed it into the APK assets
         run: |
           python3 companion/build_combined.py
-          cp build/Coogle-Companion-*.zip app/src/main/assets/coogle-companion.zip
+          cp build/COS16-Coogle-Companion-*.zip app/src/main/assets/coogle-companion.zip
 
       # The companion unittest suite hard-codes the maintainer's Windows Git-Bash
       # path and busybox fixtures, so it only runs locally; the ZIP build above is
@@ -100,21 +100,19 @@ jobs:
 
       - name: Collect artifacts
         run: |
-          mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk dist/Coogle-release.apk
-          cp app/src/main/assets/coogle-companion.zip dist/Coogle-Companion.zip
+          python3 -m unittest discover -s tests -p test_package_release.py
+          python3 package_release.py --output-dir dist
 
       - uses: actions/upload-artifact@v4
         with:
-          name: coogle-release
+          name: cos16-coogle-release
           path: dist/
 
-      - name: Create GitHub release
+      - name: Create GitHub prerelease
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            --title "Coogle $GITHUB_REF_NAME" --generate-notes \
-            'dist/Coogle-release.apk#Coogle-'"${GITHUB_REF_NAME#v}"'-release.apk' \
-            'dist/Coogle-Companion.zip#Coogle-Companion-'"${GITHUB_REF_NAME#v}"'.zip'
+            --title "COS16 Coogle $GITHUB_REF_NAME" --generate-notes --prerelease \
+            dist/COS16-Coogle-*.apk dist/COS16-Coogle-Companion-*.zip dist/SHA256SUMS

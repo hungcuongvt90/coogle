@@ -17,7 +17,7 @@ public final class CoogleModule extends XposedModule {
     }
 
     @Override public void onSystemServerStarting(XposedModuleInterface.SystemServerStartingParam param) {
-        if (!SystemCompatibility.isColorOs17()) return;
+        if (!SystemCompatibility.isSupportedColorOs()) return;
         MigrationEntry.attach(this);
         MigrationEntry.hookSystem(param.getClassLoader());
         SignalModelHooks.install(hooks, param.getClassLoader());
@@ -26,7 +26,7 @@ public final class CoogleModule extends XposedModule {
 
     @Override public void onPackageReady(XposedModuleInterface.PackageReadyParam param) {
         String packageName = param.getPackageName();
-        if (!SystemCompatibility.isColorOs17()) return;
+        if (!SystemCompatibility.isSupportedColorOs()) return;
         if ("com.google.android.apps.walletnfcrel".equals(packageName)) {
             if (FeatureConfig.enabled(FeaturePolicy.WALLET)) {
                 MigrationEntry.attach(this);

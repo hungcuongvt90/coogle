@@ -18,7 +18,9 @@ public class HookInstaller {
     public int installed;
     public XposedInterface.Hooker callback;
     public final Map<Executable,XposedInterface.Hooker> callbacks = new LinkedHashMap<>();
+    public final java.util.Set<Executable> deoptimized = new java.util.LinkedHashSet<>();
     public int failAt = -1, constructorsDeoptimized;
+    public Throwable lastError;
     public void install(Executable method,XposedInterface.Hooker hook) {
         if (installed + 1 == failAt) throw new IllegalStateException("Injected hook failure");
         installed++; callback=hook; callbacks.put(method, hook);
@@ -33,9 +35,17 @@ public class HookInstaller {
         installed = mark;
     }
     public boolean deoptimize(Executable method) {
+        deoptimized.add(method);
         if (method instanceof java.lang.reflect.Constructor) constructorsDeoptimized++;
         return true;
     }
+    public int deoptimizeCallers(Class<?> type, String... names) {
+        int count = 0;
+        for (var method : type.getDeclaredMethods()) {
+            if (java.util.List.of(names).contains(method.getName()) && deoptimize(method)) count++;
+        }
+        return count;
+    }
     public void info(String message) {}
-    public void error(String message,Throwable failure) {}
+    public void error(String message,Throwable failure) { lastError = failure; }
 }

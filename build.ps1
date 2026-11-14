@@ -17,4 +17,5 @@ try {
     & ./gradlew.bat :app:testHotwordUid :app:testWallpaper :app:testCircleGesture :app:testContextualSearch :app:testHookLifecycle :app:assembleRelease --console=plain
     if ($LASTEXITCODE -ne 0) { throw 'Gradle build failed' }
 } finally { Pop-Location }
-Write-Output (Join-Path $PSScriptRoot 'app/build/outputs/apk/release/app-release.apk')
+& python (Join-Path $PSScriptRoot 'package_release.py')
+if ($LASTEXITCODE -ne 0) { throw 'Release packaging failed' }
